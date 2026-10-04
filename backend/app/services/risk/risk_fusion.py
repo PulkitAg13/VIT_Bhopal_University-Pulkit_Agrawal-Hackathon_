@@ -1,106 +1,257 @@
+"""
+Risk Fusion Service — Core pipeline that transforms financial text
+through the complete NLP + risk assessment pipeline.
+
+Pipeline: Text → Sentiment → Entity Extraction → Event Classification →
+          Embedding → Dedup/Clustering → Corroboration → Novelty →
+          Impact Scoring → Risk Level → DB Persistence → WebSocket → Stress Trigger
+"""
 from __future__ import annotations
 
-import json
+import logging
+import time
+import uuid
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+import numpy as np
+from sqlalchemy.orm import Session
+
+from app.core.model_manager import get_model_manager
+from app.core.redis_client import publish_event
+from app.models import (
+    Document, DocumentEntity, Entity, EventCluster,
+    RiskSignal, Source, StressSimulation,
+)
 from app.services.nlp.entity_extractor import extract_entities
 from app.services.nlp.event_classifier import classify_event
 from app.services.nlp.sentiment import sentiment_analysis
 from app.services.risk.impact_scorer import compute_impact_score
 
+logger = logging.getLogger("finrisk.risk_fusion")
+
+# Source credibility profiles — clearly labelled as prototype assumptions
+SOURCE_CREDIBILITY = {
+    "official_regulator": {"score": 0.92, "label": "Official regulatory source"},
+    "central_bank": {"score": 0.90, "label": "Central bank communication"},
+    "company_filing": {"score": 0.88, "label": "Company filing / press release"},
+    "major_financial_news": {"score": 0.82, "label": "Major financial newswire"},
+    "general_news": {"score": 0.72, "label": "General news source"},
+    "social_media": {"score": 0.55, "label": "Social media / unverified"},
+    "rss": {"score": 0.78, "label": "RSS news feed"},
+    "dataset": {"score": 0.65, "label": "Dataset replay"},
+    "demo": {"score": 0.70, "label": "Synthetic demo data"},
+}
+
+# Clustering threshold
+SIMILARITY_THRESHOLD = 0.75
+
 
 class RiskFusionService:
-    def __init__(self, storage_path: str | Path | None = None) -> None:
-        base_dir = Path(__file__).resolve().parents[4]
-        self.storage_path = Path(storage_path) if storage_path else base_dir / "data" / "processed" / "events.json"
-        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        self.history: List[Dict[str, Any]] = self._load_history()
+    """Stateless service — all state goes to PostgreSQL."""
 
-    def _load_history(self) -> List[Dict[str, Any]]:
-        if not self.storage_path.exists():
-            return []
-        try:
-            payload = json.loads(self.storage_path.read_text(encoding="utf-8"))
-            if isinstance(payload, list):
-                return payload
-            if isinstance(payload, dict):
-                events = payload.get("events")
-                return events if isinstance(events, list) else []
-        except json.JSONDecodeError:
-            return []
-        return []
+    def __init__(self) -> None:
+        self.mm = get_model_manager()
 
-    def _save_history(self) -> None:
-        self.storage_path.write_text(json.dumps({"events": self.history}, indent=2), encoding="utf-8")
+    def _get_source_credibility(self, source_name: str, source_type: str) -> Dict[str, Any]:
+        """Determine source credibility based on type and name. Clearly labelled as prototype."""
+        key = source_type.lower()
+        name_lower = (source_name or "").lower()
 
-    def _source_credibility(self, source_name: str, source_type: str) -> float:
-        source_key = (source_name or "").lower()
-        if "fed" in source_key or "central bank" in source_key or "regulator" in source_key:
-            return 0.92
-        if "yahoo" in source_key or source_type == "rss":
-            return 0.8
-        if "twitter" in source_key or "dataset" in source_key:
-            return 0.7
-        if source_type == "demo":
-            return 0.75
-        return 0.68
+        # Override by name
+        if any(kw in name_lower for kw in ["fed", "central bank", "regulator", "sec"]):
+            profile = SOURCE_CREDIBILITY["official_regulator"]
+        elif any(kw in name_lower for kw in ["yahoo", "reuters", "bloomberg"]):
+            profile = SOURCE_CREDIBILITY["major_financial_news"]
+        elif key in SOURCE_CREDIBILITY:
+            profile = SOURCE_CREDIBILITY[key]
+        else:
+            profile = SOURCE_CREDIBILITY.get("general_news", {"score": 0.68, "label": "Unknown"})
 
-    def _corroboration_score(self, text: str, entities: List[Dict[str, Any]]) -> float:
-        base = 0.28
-        if len(self.history) == 0:
-            return round(base + 0.18, 4)
-        similar = 0
-        for prior in self.history[-10:]:
-            prior_text = str(prior.get("text", "")).lower()
-            if prior_text and text.lower() in prior_text or prior_text in text.lower():
-                similar += 1
-        if similar:
-            return round(min(0.9, 0.45 + similar * 0.08), 4)
-        diversity = len({entity.get("name") for entity in entities if entity.get("name")})
-        return round(min(0.9, 0.52 + diversity * 0.05), 4)
+        return {
+            "score": profile["score"],
+            "label": profile["label"],
+            "note": "Prototype source credibility assumption",
+        }
 
-    def _novelty_score(self, text: str) -> float:
-        if not self.history:
-            return 0.8
-        similarities = []
-        text_l = text.lower()
-        for prior in self.history[-10:]:
-            prior_text = str(prior.get("text", "")).lower()
-            if not prior_text:
-                continue
-            overlap = len(set(text_l.split()) & set(prior_text.split())) / max(1, min(len(text_l.split()), len(prior_text.split())))
-            similarities.append(overlap)
-        if not similarities:
-            return 0.8
-        max_similarity = max(similarities)
-        return round(max(0.18, 1.0 - max_similarity), 4)
+    def _compute_novelty(self, embedding: np.ndarray, db: Session) -> float:
+        """Calculate novelty: 1 - max_similarity with recent events."""
+        recent_signals = (
+            db.query(RiskSignal)
+            .join(Document)
+            .filter(Document.embedding_vector.isnot(None))
+            .order_by(RiskSignal.created_at.desc())
+            .limit(20)
+            .all()
+        )
+        if not recent_signals:
+            return 0.85
 
-    def analyze(self, text: str, source_name: str = "demo", source_type: str = "news") -> Dict[str, Any]:
+        max_sim = 0.0
+        for signal in recent_signals:
+            doc = signal.document
+            if doc.embedding_vector:
+                prior_emb = np.array(doc.embedding_vector, dtype=np.float32)
+                sim = self.mm.cosine_similarity(embedding, prior_emb)
+                max_sim = max(max_sim, sim)
+
+        novelty = max(0.1, 1.0 - max_sim)
+        return round(novelty, 4)
+
+    def _compute_corroboration(
+        self, embedding: np.ndarray, source_name: str, db: Session
+    ) -> Dict[str, Any]:
+        """Calculate corroboration based on independent source count and diversity."""
+        recent = (
+            db.query(RiskSignal)
+            .join(Document)
+            .filter(Document.embedding_vector.isnot(None))
+            .order_by(RiskSignal.created_at.desc())
+            .limit(30)
+            .all()
+        )
+        if not recent:
+            return {"score": round(0.3, 4), "independent_sources": 0, "similar_events": 0}
+
+        similar_sources = set()
+        similar_count = 0
+        for signal in recent:
+            doc = signal.document
+            if doc.embedding_vector:
+                prior_emb = np.array(doc.embedding_vector, dtype=np.float32)
+                sim = self.mm.cosine_similarity(embedding, prior_emb)
+                if sim >= 0.6:
+                    similar_count += 1
+                    if signal.source_name and signal.source_name.lower() != source_name.lower():
+                        similar_sources.add(signal.source_name)
+
+        independent = len(similar_sources)
+        # Score based on independent sources and similar events
+        base = 0.25
+        source_bonus = min(0.4, independent * 0.12)
+        event_bonus = min(0.25, similar_count * 0.05)
+        score = min(0.95, base + source_bonus + event_bonus)
+
+        return {
+            "score": round(score, 4),
+            "independent_sources": independent,
+            "similar_events": similar_count,
+        }
+
+    def _find_or_create_cluster(
+        self, embedding: np.ndarray, event_class: str, db: Session
+    ) -> Optional[EventCluster]:
+        """Find existing cluster or create new one based on semantic similarity."""
+        recent_clusters = (
+            db.query(EventCluster)
+            .filter(EventCluster.status.in_(["NEW", "DEVELOPING", "ESCALATING", "STABLE"]))
+            .order_by(EventCluster.last_updated.desc())
+            .limit(20)
+            .all()
+        )
+
+        best_cluster = None
+        best_sim = 0.0
+
+        for cluster in recent_clusters:
+            if cluster.centroid_embedding:
+                centroid = np.array(cluster.centroid_embedding, dtype=np.float32)
+                sim = self.mm.cosine_similarity(embedding, centroid)
+                if sim > best_sim:
+                    best_sim = sim
+                    best_cluster = cluster
+
+        if best_cluster and best_sim >= SIMILARITY_THRESHOLD:
+            # Update existing cluster
+            best_cluster.event_count += 1
+            best_cluster.last_updated = datetime.now(timezone.utc)
+            # Update status based on event count
+            if best_cluster.event_count >= 5:
+                best_cluster.status = "ESCALATING"
+            elif best_cluster.event_count >= 3:
+                best_cluster.status = "DEVELOPING"
+            return best_cluster
+
+        # Create new cluster
+        cluster = EventCluster(
+            id=str(uuid.uuid4()),
+            label=event_class,
+            representative_text=None,
+            status="NEW",
+            event_count=1,
+            centroid_embedding=embedding.tolist(),
+        )
+        db.add(cluster)
+        return cluster
+
+    def analyze(
+        self,
+        text: str,
+        source_name: str = "demo",
+        source_type: str = "news",
+        source_url: str | None = None,
+        published_at: datetime | None = None,
+        db: Session = None,
+    ) -> Dict[str, Any]:
+        """Full pipeline: NLP → Risk Assessment → DB Persistence → WebSocket."""
+        t0 = time.time()
+
+        # 1. NLP: Sentiment
         sentiment = sentiment_analysis(text)
-        event = classify_event(text)
+
+        # 2. NLP: Entity extraction
         entities = extract_entities(text)
-        now = datetime.now(timezone.utc)
-        corroboration = self._corroboration_score(text, entities)
-        novelty = self._novelty_score(text)
-        source_credibility = self._source_credibility(source_name, source_type)
-        recency_hours = 1.2 if len(self.history) == 0 else min(24.0, 1.2 + len(self.history) * 0.4)
+
+        # 3. NLP: Event classification
+        event = classify_event(text)
+
+        # 4. Embedding
+        embedding = self.mm.encode([text])[0]
+
+        # 5. Source credibility
+        cred = self._get_source_credibility(source_name, source_type)
+
+        if db is not None:
+            # 6. Novelty (requires DB)
+            novelty = self._compute_novelty(embedding, db)
+
+            # 7. Corroboration (requires DB)
+            corrob = self._compute_corroboration(embedding, source_name, db)
+
+            # 8. Clustering
+            cluster = self._find_or_create_cluster(embedding, event["class"], db)
+        else:
+            novelty = 0.8
+            corrob = {"score": 0.3, "independent_sources": 0, "similar_events": 0}
+            cluster = None
+
+        # 9. Entity relevance
+        entity_relevance = 0.9 if any(
+            e.get("type") in {"company", "institution", "commodity"} for e in entities
+        ) else 0.5
+
+        # 10. Impact scoring
         risk_inputs = {
             "sentiment_score": sentiment["score"],
             "event_class": event["class"],
             "confidence": event["confidence"],
-            "source_credibility": source_credibility,
-            "corroboration": corroboration,
+            "source_credibility": cred["score"],
+            "corroboration": corrob["score"],
             "novelty": novelty,
-            "recency_hours": recency_hours,
-            "entity_relevance": 0.9 if entities else 0.5,
-            "market_volatility": 0.72,
-            "portfolio_exposure": 0.8 if any(entity.get("type") in {"company", "commodity", "institution"} for entity in entities) else 0.55,
+            "recency_hours": 1.0,
+            "entity_relevance": entity_relevance,
+            "market_volatility": 0.5,  # Documented fallback
+            "portfolio_exposure": 0.7 if entity_relevance > 0.6 else 0.4,
         }
         impact = compute_impact_score(risk_inputs)
-        confidence = min(0.99, max(0.45, 0.5 + event["confidence"] * 0.35 + corroboration * 0.2 + abs(sentiment["score"]) * 0.2))
 
+        # 11. Overall confidence
+        overall_confidence = min(
+            0.99,
+            max(0.35, 0.4 + event["confidence"] * 0.3 + corrob["score"] * 0.15 + abs(sentiment["score"]) * 0.15)
+        )
+
+        # 12. Risk trajectory
         if impact["score"] >= 8 and sentiment["score"] < -0.15:
             risk_trajectory = "ACCELERATING"
         elif impact["score"] >= 6:
@@ -110,97 +261,145 @@ class RiskFusionService:
         else:
             risk_trajectory = "LOW"
 
-        summary = [
-            "Negative sentiment signal dominates the narrative" if sentiment["score"] < -0.15 else "Sentiment remains constructive or neutral",
-            f"{event['class']} event identified with {event['confidence']:.2f} confidence",
-            "Multiple sources increase corroboration" if corroboration >= 0.6 else "Evidence remains relatively narrow",
-            "Portfolio and entity exposure magnify the signal" if entities else "Macro risk is elevated but not yet entity-specific",
+        # 13. Explanation
+        explanation = [
+            f"Sentiment: {sentiment['label']} ({sentiment['score']:+.2f}) via {sentiment.get('model', 'unknown')}",
+            f"Event: {event['class']} ({event['confidence']:.2f} confidence) via {event.get('model', 'unknown')}",
+            f"Source credibility: {cred['score']:.2f} — {cred['label']}",
+            f"Corroboration: {corrob['score']:.2f} ({corrob['independent_sources']} independent sources)",
+            f"Novelty: {novelty:.2f}",
+            impact["explanation"],
         ]
 
-        scenario = "GEOPOLITICAL_SHOCK" if event["class"] == "Geopolitical" else "MACRO_RATE_SHOCK" if event["class"] == "Macroeconomic" else "CREDIT_CRISIS" if event["class"] == "Credit Event" else "LIQUIDITY_SHOCK" if event["class"] == "Liquidity" else "MACRO_RATE_SHOCK"
-        stress_triggered = impact["score"] >= 7 and event["class"] in {"Geopolitical", "Macroeconomic", "Credit Event", "Liquidity"}
+        # 14. Stress trigger logic
+        scenario_map = {
+            "Geopolitical": "GEOPOLITICAL_SHOCK",
+            "Macroeconomic": "MACRO_RATE_SHOCK",
+            "Credit Event": "CREDIT_CRISIS",
+            "Liquidity": "LIQUIDITY_SHOCK",
+            "Commodity / Energy": "COMMODITY_SHOCK",
+            "Monetary Policy": "MACRO_RATE_SHOCK",
+        }
+        scenario = scenario_map.get(event["class"], "MACRO_RATE_SHOCK")
+        stress_triggered = impact["score"] >= 7.0 and event["class"] in scenario_map
 
+        processing_time = int((time.time() - t0) * 1000)
+
+        # 15. Persist to database
+        signal_id = str(uuid.uuid4())
+        doc_id = str(uuid.uuid4())
+
+        if db is not None:
+            # Create/find source
+            source_record = db.query(Source).filter(
+                Source.name == source_name, Source.source_type == source_type
+            ).first()
+            if not source_record:
+                source_record = Source(
+                    id=str(uuid.uuid4()),
+                    name=source_name,
+                    source_type=source_type,
+                    credibility_score=cred["score"],
+                    url=source_url,
+                )
+                db.add(source_record)
+
+            # Create document
+            doc = Document(
+                id=doc_id,
+                source_id=source_record.id,
+                original_text=text,
+                source_url=source_url,
+                published_at=published_at,
+                embedding_vector=embedding.tolist(),
+            )
+            db.add(doc)
+
+            # Create/update entities
+            for ent in entities:
+                entity_record = db.query(Entity).filter(
+                    Entity.canonical_name == ent["canonical_name"]
+                ).first()
+                if not entity_record:
+                    entity_record = Entity(
+                        id=str(uuid.uuid4()),
+                        canonical_name=ent["canonical_name"],
+                        ticker=ent.get("ticker"),
+                        entity_type=ent["type"],
+                    )
+                    db.add(entity_record)
+                    db.flush()
+
+                doc_entity = DocumentEntity(
+                    id=str(uuid.uuid4()),
+                    document_id=doc_id,
+                    entity_id=entity_record.id,
+                    confidence=ent["confidence"],
+                )
+                db.add(doc_entity)
+
+            # Create risk signal
+            signal = RiskSignal(
+                id=signal_id,
+                document_id=doc_id,
+                event_cluster_id=cluster.id if cluster else None,
+                sentiment_label=sentiment["label"],
+                sentiment_score=sentiment["score"],
+                sentiment_confidence=sentiment["confidence"],
+                sentiment_probabilities=sentiment.get("probabilities"),
+                event_class=event["class"],
+                event_confidence=event["confidence"],
+                impact_score=impact["score"],
+                impact_components=impact["components"],
+                risk_level=impact["risk_level"],
+                overall_confidence=round(overall_confidence, 4),
+                novelty_score=round(novelty, 4),
+                corroboration_score=corrob["score"],
+                risk_trajectory=risk_trajectory,
+                source_name=source_name,
+                source_type=source_type,
+                source_credibility=cred["score"],
+                explanation=explanation,
+                processing_time_ms=processing_time,
+                market_context_available=False,
+                status="NEW",
+            )
+            db.add(signal)
+            db.commit()
+            db.refresh(signal)
+
+        # Build response
         result = {
-            "event_id": f"evt_{len(self.history) + 1:04d}",
-            "timestamp": now.isoformat(),
-            "source": {"type": source_type, "name": source_name},
+            "signal_id": signal_id,
+            "document_id": doc_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": {"type": source_type, "name": source_name, "url": source_url},
             "text": text,
             "entities": entities,
-            "sentiment": {
-                "label": sentiment["label"],
-                "score": sentiment["score"],
-                "confidence": sentiment["confidence"],
-                "probabilities": sentiment["probabilities"],
+            "sentiment": sentiment,
+            "event": {"class": event["class"], "confidence": event["confidence"], "model": event.get("model")},
+            "impact": {
+                "score": impact["score"],
+                "risk_level": impact["risk_level"],
+                "components": impact["components"],
+                "explanation": impact["explanation"],
             },
-            "event": {"class": event["class"], "confidence": event["confidence"]},
-            "impact": {"score": impact["score"], "risk_level": impact["risk_level"]},
             "novelty_score": round(novelty, 4),
-            "corroboration_score": round(corroboration, 4),
-            "confidence_score": round(confidence, 4),
+            "corroboration": corrob,
+            "confidence_score": round(overall_confidence, 4),
             "risk_trajectory": risk_trajectory,
-            "explanation": summary,
+            "explanation": explanation,
             "stress_test": {
                 "triggered": stress_triggered,
-                "scenario": scenario,
+                "scenario": scenario if stress_triggered else None,
             },
-            "processing_time_ms": max(60, int(120 + len(text.split()) * 6)),
+            "processing_time_ms": processing_time,
+            "market_context_available": False,
+            "cluster_id": cluster.id if cluster else None,
+            "cluster_status": cluster.status if cluster else None,
         }
-        self.history.append(result)
-        self._save_history()
 
-        try:
-            from app.api.routes.websocket import broadcast_event
-            broadcast_event(result)
-        except Exception:
-            pass
+        # 16. Publish to Redis for WebSocket
+        publish_event(result)
+
         return result
-
-    def list_events(self) -> List[Dict[str, Any]]:
-        return self.history
-
-    def get_event(self, event_id: str) -> Dict[str, Any] | None:
-        for event in self.history:
-            if event.get("event_id") == event_id:
-                return event
-        return None
-
-    def overview(self) -> Dict[str, Any]:
-        items = self.history
-        if not items:
-            return {
-                "events_processed": 0,
-                "high_risk_events": 0,
-                "critical_events": 0,
-                "average_sentiment": 0.0,
-                "average_impact": 0.0,
-                "overall_risk": 0.0,
-                "portfolio_exposure": 0.0,
-                "market_risk": "LOW",
-            }
-        avg_sentiment = sum(float(item["sentiment"]["score"]) for item in items) / len(items)
-        avg_impact = sum(float(item["impact"]["score"]) for item in items) / len(items)
-        overall_risk = round(min(10.0, avg_impact * 0.9 + 1.5), 2)
-        return {
-            "events_processed": len(items),
-            "high_risk_events": sum(1 for item in items if item["impact"]["risk_level"] == "HIGH"),
-            "critical_events": sum(1 for item in items if item["impact"]["risk_level"] == "CRITICAL"),
-            "average_sentiment": round(avg_sentiment, 4),
-            "average_impact": round(avg_impact, 4),
-            "overall_risk": overall_risk,
-            "portfolio_exposure": round(sum(0.7 for _ in items) / max(1, len(items)), 4),
-            "market_risk": "ELEVATED" if overall_risk >= 6 else "MODERATE" if overall_risk >= 4 else "LOW",
-        }
-
-    def timeline(self) -> List[Dict[str, Any]]:
-        points: List[Dict[str, Any]] = []
-        for item in self.history[-12:]:
-            points.append({
-                "timestamp": item["timestamp"],
-                "risk": item["impact"]["score"],
-                "event_class": item["event"]["class"],
-            })
-        return points
-
-    def metrics(self) -> Dict[str, Any]:
-        overview = self.overview()
-        return {**overview, "events_processed": overview["events_processed"]}

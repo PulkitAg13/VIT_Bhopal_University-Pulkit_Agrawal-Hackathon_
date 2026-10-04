@@ -12,10 +12,22 @@ class Settings(BaseSettings):
     app_name: str = "FinRisk Intelligence"
     app_env: str = "demo"
     log_level: str = "INFO"
-    database_url: str = "sqlite:///./finrisk.db"
+    database_url: str = "postgresql+psycopg2://finrisk:finriskpass@localhost:5432/finrisk"
     redis_url: str = "redis://localhost:6379/0"
     model_cache_dir: str = "/tmp/model-cache"
-    backend_cors_origins: List[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://frontend:3000"])
+    hf_home: str = Field(default="/tmp/hf-home", alias="HF_HOME")
+    backend_cors_origins: List[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://frontend:80",
+        ]
+    )
+    # Model loading
+    load_finbert: bool = True
+    load_embeddings: bool = True
+    # Stress testing
+    stress_trigger_threshold: float = 7.0
 
     class Config:
         env_file = ".env"
