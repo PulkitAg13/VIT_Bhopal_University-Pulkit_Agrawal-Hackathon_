@@ -1,17 +1,53 @@
 scenarios:
   GEOPOLITICAL_SHOCK:
+    description: "Geopolitical conflict disrupting trade and energy supply"
     equity_shock: -0.10
     credit_spread_shock: 0.03
     interest_rate_shock: 0.02
-    commodity_shock: 0.08
+    commodity_shock: 0.15
+    liquidity_haircut: 0.05
+    default_rate_increase: 0.02
+    assumptions: "Equity decline from risk-off; commodity surge from supply disruption; spread widening from uncertainty"
+
   MACRO_RATE_SHOCK:
+    description: "Aggressive monetary tightening with rate increases"
     equity_shock: -0.05
-    interest_rate_shock: 0.02
+    interest_rate_shock: 0.025
     bond_price_shock: -0.04
+    credit_spread_shock: 0.015
+    commodity_shock: -0.05
+    liquidity_haircut: 0.02
+    default_rate_increase: 0.01
+    assumptions: "Rate increase depresses bonds and equities; commodities decline on demand concerns"
+
   CREDIT_CRISIS:
-    corporate_bond_shock: -0.12
-    loan_default_rate: 0.05
+    description: "Systemic credit event with defaults and spread blowout"
     equity_shock: -0.15
+    corporate_bond_shock: -0.12
+    credit_spread_shock: 0.06
+    default_rate_increase: 0.05
+    liquidity_haircut: 0.10
+    interest_rate_shock: -0.01
+    commodity_shock: -0.08
+    assumptions: "Flight to quality; corporate defaults rise; spreads widen; rates may fall on intervention"
+
   LIQUIDITY_SHOCK:
+    description: "Market liquidity freeze with forced selling"
+    equity_shock: -0.08
     corporate_bond_shock: -0.10
-    derivative_haircut: -0.05
+    credit_spread_shock: 0.04
+    liquidity_haircut: 0.15
+    derivative_haircut: 0.08
+    default_rate_increase: 0.03
+    interest_rate_shock: 0.01
+    assumptions: "Liquidity premium rises; forced selling; derivatives face margin calls"
+
+  COMMODITY_SHOCK:
+    description: "Major commodity price spike from supply disruption"
+    equity_shock: -0.04
+    commodity_shock: 0.25
+    interest_rate_shock: 0.01
+    credit_spread_shock: 0.02
+    liquidity_haircut: 0.03
+    default_rate_increase: 0.015
+    assumptions: "Energy/commodity surge raises input costs; modest equity decline; inflation pushes rates"

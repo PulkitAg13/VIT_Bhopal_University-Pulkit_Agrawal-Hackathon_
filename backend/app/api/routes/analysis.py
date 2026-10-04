@@ -1,22 +1,28 @@
+"""Analysis endpoint — runs the full NLP + risk pipeline."""
 from __future__ import annotations
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
+from app.core.database import get_db
 from app.api.dependencies import risk_service
+from app.schemas import AnalyzeRequest
 
 router = APIRouter(tags=["analysis"])
 
 
-class AnalyzeRequest(BaseModel):
-    text: str
-    source_name: str = "Yahoo Finance RSS"
-    source_type: str = "rss"
-
-
 @router.post("/analyze")
-def analyze(payload: AnalyzeRequest) -> dict:
+def analyze(payload: AnalyzeRequest, db: Session = Depends(get_db)) -> dict:
     if not payload.text.strip():
-        raise ValueError("Text cannot be empty")
-    result = risk_service.analyze(payload.text, payload.source_name, payload.source_type)
-    return result
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+    try:
+        result = risk_service.analyze(
+            text=payload.text,
+            source_name=payload.source_name,
+            source_type=payload.source_type,
+            source_url=payload.source_url,
+            db=db,
+        )
+        return result
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(exc)}")

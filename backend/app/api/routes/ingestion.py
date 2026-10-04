@@ -1,25 +1,43 @@
+"""Ingestion endpoint — fetch from real sources and analyze."""
 from __future__ import annotations
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from app.services.ingestion.sources import DemoSource, RSSNewsSource
+from app.core.database import get_db
 from app.api.dependencies import risk_service
+from app.services.ingestion.sources import get_source
+from app.schemas import IngestRequest
 
 router = APIRouter(tags=["ingestion"])
 
 
-class IngestRequest(BaseModel):
-    source: str = "demo"
-    ticker: str = "AAPL"
-    text: str | None = None
-
-
 @router.post("/ingest")
-def ingest(payload: IngestRequest) -> dict:
-    source = DemoSource("data/sample/demo_events.json") if payload.source == "demo" else RSSNewsSource(payload.ticker)
-    texts = source.fetch()
-    if payload.text:
-        texts = [payload.text]
-    signals = [risk_service.analyze(text, source.name, source.source_type) for text in texts]
-    return {"ingested": len(signals), "signals": signals}
+def ingest(payload: IngestRequest, db: Session = Depends(get_db)) -> dict:
+    try:
+        source = get_source(payload.source, payload.ticker, payload.dataset_name)
+        items = source.fetch(max_items=payload.max_items)
+
+        if not items:
+            return {"ingested": 0, "source": source.name, "signals": [],
+                    "message": "No items fetched from source"}
+
+        signals = []
+        for item in items:
+            result = risk_service.analyze(
+                text=item.text,
+                source_name=item.source_name,
+                source_type=item.source_type,
+                source_url=item.source_url,
+                published_at=item.published_at,
+                db=db,
+            )
+            signals.append(result)
+
+        return {
+            "ingested": len(signals),
+            "source": source.name,
+            "signals": signals,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(exc)}")
