@@ -1,0 +1,17 @@
+scenarios:
+  GEOPOLITICAL_SHOCK:
+    equity_shock: -0.10
+    credit_spread_shock: 0.03
+    interest_rate_shock: 0.02
+    commodity_shock: 0.08
+  MACRO_RATE_SHOCK:
+    equity_shock: -0.05
+    interest_rate_shock: 0.02
+    bond_price_shock: -0.04
+  CREDIT_CRISIS:
+    corporate_bond_shock: -0.12
+    loan_default_rate: 0.05
+    equity_shock: -0.15
+  LIQUIDITY_SHOCK:
+    corporate_bond_shock: -0.10
+    derivative_haircut: -0.05

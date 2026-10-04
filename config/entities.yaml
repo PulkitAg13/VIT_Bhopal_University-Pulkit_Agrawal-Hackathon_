@@ -1,0 +1,37 @@
+entities:
+  - name: Apple Inc.
+    ticker: AAPL
+    type: company
+  - name: Microsoft
+    ticker: MSFT
+    type: company
+  - name: NVIDIA
+    ticker: NVDA
+    type: company
+  - name: Tesla
+    ticker: TSLA
+    type: company
+  - name: Amazon
+    ticker: AMZN
+    type: company
+  - name: Meta
+    ticker: META
+    type: company
+  - name: Alphabet Inc.
+    ticker: GOOGL
+    type: company
+  - name: JPMorgan Chase
+    ticker: JPM
+    type: institution
+  - name: Bank of America
+    ticker: BAC
+    type: institution
+  - name: Federal Reserve
+    ticker: FED
+    type: institution
+  - name: Crude Oil
+    ticker: CL=F
+    type: commodity
+  - name: Gold
+    ticker: GC=F
+    type: commodity

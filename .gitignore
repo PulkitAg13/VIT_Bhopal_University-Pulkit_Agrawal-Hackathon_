@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+.pytest_cache/
+node_modules/
+frontend/dist/
+backend/.venv/
+.idea/
+.DS_Store
+*.log
+*.sqlite3
+*.db
+
+# Data artifacts
+!data/sample/
+!data/sample/*.json
+!data/synthetic/
+!data/synthetic/*.json
+!data/synthetic/*.csv

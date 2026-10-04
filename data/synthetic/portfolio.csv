@@ -1,0 +1,7 @@
+asset_class,value,exposure
+Corporate Loans,30000000,0.8
+Government Bonds,20000000,0.4
+Corporate Bonds,15000000,0.7
+Equities,20000000,0.9
+Derivatives,10000000,0.8
+Cash,5000000,0.2

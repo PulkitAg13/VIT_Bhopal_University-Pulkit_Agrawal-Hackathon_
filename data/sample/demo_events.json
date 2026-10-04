@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "text": "Escalating geopolitical tensions disrupt critical energy supply routes, raising concerns over global inflation and corporate input costs.",
+      "source": "Yahoo Finance RSS",
+      "kind": "rss"
+    },
+    {
+      "text": "Fed signals aggressive rate increases as inflation remains stubborn and banks reassess credit risk exposure.",
+      "source": "Reuters",
+      "kind": "rss"
+    },
+    {
+      "text": "Apple's supplier network faces supply chain disruption after shipping delays worsen in major Asian ports.",
+      "source": "Bloomberg",
+      "kind": "rss"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-finrisk}
+      POSTGRES_USER: ${POSTGRES_USER:-finrisk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finriskpass}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finrisk} -d ${POSTGRES_DB:-finrisk}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg2://finrisk:finriskpass@postgres:5432/finrisk
+      REDIS_URL: redis://redis:6379/0
+      APP_ENV: demo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./data:/app/data
+      - ./backend:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health').read()"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '3000:80'
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/ >/dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

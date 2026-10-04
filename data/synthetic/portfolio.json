@@ -1,0 +1,13 @@
+{
+  "portfolio_id": "wholesale-demo",
+  "name": "Synthetic Wholesale Banking Portfolio",
+  "total_value": 100000000,
+  "positions": [
+    {"asset_class": "Corporate Loans", "value": 30000000, "exposure": 0.8},
+    {"asset_class": "Government Bonds", "value": 20000000, "exposure": 0.4},
+    {"asset_class": "Corporate Bonds", "value": 15000000, "exposure": 0.7},
+    {"asset_class": "Equities", "value": 20000000, "exposure": 0.9},
+    {"asset_class": "Derivatives", "value": 10000000, "exposure": 0.8},
+    {"asset_class": "Cash", "value": 5000000, "exposure": 0.2}
+  ]
+}
