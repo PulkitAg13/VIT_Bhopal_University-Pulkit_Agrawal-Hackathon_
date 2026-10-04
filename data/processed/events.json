@@ -1,0 +1,54 @@
+{
+  "events": [
+    {
+      "event_id": "evt_0001",
+      "timestamp": "2026-10-04T19:03:35.512650+00:00",
+      "source": {
+        "type": "rss",
+        "name": "demo"
+      },
+      "text": "Escalating geopolitical tensions disrupt critical energy supply routes, raising concerns over global inflation and corporate input costs.",
+      "entities": [
+        {
+          "name": "General Market",
+          "ticker": null,
+          "type": "macro",
+          "confidence": 0.5
+        }
+      ],
+      "sentiment": {
+        "label": "negative",
+        "score": -1.0,
+        "confidence": 0.99,
+        "probabilities": {
+          "positive": 0.0,
+          "negative": 1.0,
+          "neutral": 0.0
+        }
+      },
+      "event": {
+        "class": "Geopolitical",
+        "confidence": 0.6778
+      },
+      "impact": {
+        "score": 8.87,
+        "risk_level": "HIGH"
+      },
+      "novelty_score": 0.8,
+      "corroboration_score": 0.46,
+      "confidence_score": 0.99,
+      "risk_trajectory": "ACCELERATING",
+      "explanation": [
+        "Negative sentiment signal dominates the narrative",
+        "Geopolitical event identified with 0.68 confidence",
+        "Evidence remains relatively narrow",
+        "Portfolio and entity exposure magnify the signal"
+      ],
+      "stress_test": {
+        "triggered": true,
+        "scenario": "GEOPOLITICAL_SHOCK"
+      },
+      "processing_time_ms": 222
+    }
+  ]
+}

@@ -21,3 +21,30 @@ def metrics() -> dict:
         "portfolio_exposure": 0.7,
         "market_risk": "ELEVATED",
     }
+
+
+@router.get("/risk/overview")
+def risk_overview() -> dict:
+    data = metrics()
+    return {
+        "events_processed": data["events_processed"],
+        "high_risk_events": data["high_risk_events"],
+        "critical_events": data["critical_events"],
+        "average_sentiment": data["average_sentiment"],
+        "average_impact": data["average_impact"],
+        "overall_risk": round(min(10.0, data["average_impact"] * 1.05 + 1.0), 2),
+        "portfolio_exposure": data["portfolio_exposure"],
+        "market_risk": data["market_risk"],
+    }
+
+
+@router.get("/risk/timeline")
+def risk_timeline() -> list[dict]:
+    items = []
+    for event in risk_service.history[-12:]:
+        items.append({
+            "time": event["timestamp"],
+            "risk": event["impact"]["score"],
+            "event": event["event"]["class"],
+        })
+    return items

@@ -9,7 +9,10 @@ client = TestClient(app)
 def test_health_endpoint():
     response = client.get("/api/v1/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert "database" in payload
+    assert "redis" in payload
 
 
 def test_analyze_endpoint():
@@ -24,6 +27,19 @@ def test_analyze_endpoint():
     assert "impact" in payload
     assert "event" in payload
     assert payload["impact"]["score"] >= 1
+
+
+def test_risk_overview_and_stress_scenarios_endpoints():
+    response = client.get("/api/v1/risk/overview")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "overall_risk" in payload
+
+    response = client.get("/api/v1/stress-test/scenarios")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "scenarios" in payload
+    assert "GEOPOLITICAL_SHOCK" in payload["scenarios"]
 
 
 def test_stress_engine():
