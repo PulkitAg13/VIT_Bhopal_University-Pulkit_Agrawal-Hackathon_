@@ -1,18 +1,22 @@
 """Analysis endpoint — runs the full NLP + risk pipeline."""
 from __future__ import annotations
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.api.dependencies import risk_service
-from app.schemas import AnalyzeRequest
+from app.core.model_manager import ModelUnavailableError
+from app.schemas import AnalyzeRequest, RiskSignalResponse
+
+logger = logging.getLogger("finrisk.analysis")
 
 router = APIRouter(tags=["analysis"])
 
 
-@router.post("/analyze")
-def analyze(payload: AnalyzeRequest, db: Session = Depends(get_db)) -> dict:
+@router.post("/analyze", response_model=RiskSignalResponse)
+def analyze(payload: AnalyzeRequest, db: Session = Depends(get_db)) -> RiskSignalResponse:
     if not payload.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
     try:
@@ -23,6 +27,11 @@ def analyze(payload: AnalyzeRequest, db: Session = Depends(get_db)) -> dict:
             source_url=payload.source_url,
             db=db,
         )
-        return result
+        return RiskSignalResponse(**result)
+    except ModelUnavailableError:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(exc)}")
+        logger.error("Analysis failed unexpectedly: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Unexpected analysis error occurred.")

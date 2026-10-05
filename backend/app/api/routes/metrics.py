@@ -1,18 +1,20 @@
 """Metrics and analytics endpoints — all data from database."""
 from __future__ import annotations
 
+from typing import Any, Dict, List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 
 from app.core.database import get_db
 from app.models import RiskSignal
+from app.schemas import AnalyticsOverview
 
 router = APIRouter(tags=["metrics"])
 
 
-def _compute_metrics(db: Session) -> dict:
-    """Compute all metrics from database."""
+def _compute_metrics(db: Session) -> Dict[str, Any]:
+    """Compute summary metrics from database."""
     total = db.query(func.count(RiskSignal.id)).scalar() or 0
 
     if total == 0:
@@ -32,7 +34,7 @@ def _compute_metrics(db: Session) -> dict:
     avg_impact = db.query(func.avg(RiskSignal.impact_score)).scalar() or 0.0
 
     overall_risk = round(min(10.0, float(avg_impact) * 1.1 + 0.5), 2)
-    market_risk = "ELEVATED" if overall_risk >= 6 else "MODERATE" if overall_risk >= 4 else "LOW"
+    market_risk = "ELEVATED" if overall_risk >= 6.0 else "MODERATE" if overall_risk >= 4.0 else "LOW"
 
     return {
         "events_processed": total,
@@ -46,24 +48,23 @@ def _compute_metrics(db: Session) -> dict:
 
 
 @router.get("/metrics")
-def metrics(db: Session = Depends(get_db)) -> dict:
+def metrics(db: Session = Depends(get_db)) -> Dict[str, Any]:
     return _compute_metrics(db)
 
 
 @router.get("/risk/overview")
-def risk_overview(db: Session = Depends(get_db)) -> dict:
+def risk_overview(db: Session = Depends(get_db)) -> Dict[str, Any]:
     return _compute_metrics(db)
 
 
 @router.get("/risk/timeline")
-def risk_timeline(db: Session = Depends(get_db)) -> list:
+def risk_timeline(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
     signals = (
         db.query(RiskSignal)
         .order_by(desc(RiskSignal.created_at))
         .limit(30)
         .all()
     )
-    # Reverse to chronological order
     signals.reverse()
     return [
         {
@@ -76,16 +77,15 @@ def risk_timeline(db: Session = Depends(get_db)) -> list:
     ]
 
 
-@router.get("/analytics/overview")
-def analytics_overview(db: Session = Depends(get_db)) -> dict:
+@router.get("/analytics/overview", response_model=AnalyticsOverview)
+def analytics_overview(db: Session = Depends(get_db)) -> AnalyticsOverview:
     base = _compute_metrics(db)
     signals = db.query(RiskSignal).all()
 
-    # Distributions
-    event_dist: dict = {}
-    sentiment_dist: dict = {}
-    risk_dist: dict = {}
-    source_dist: dict = {}
+    event_dist: Dict[str, int] = {}
+    sentiment_dist: Dict[str, int] = {}
+    risk_dist: Dict[str, int] = {}
+    source_dist: Dict[str, int] = {}
 
     for s in signals:
         event_dist[s.event_class] = event_dist.get(s.event_class, 0) + 1
@@ -94,10 +94,10 @@ def analytics_overview(db: Session = Depends(get_db)) -> dict:
         src = s.source_type or "unknown"
         source_dist[src] = source_dist.get(src, 0) + 1
 
-    return {
+    return AnalyticsOverview(
         **base,
-        "event_distribution": event_dist,
-        "sentiment_distribution": sentiment_dist,
-        "risk_distribution": risk_dist,
-        "source_distribution": source_dist,
-    }
+        event_distribution=event_dist,
+        sentiment_distribution=sentiment_dist,
+        risk_distribution=risk_dist,
+        source_distribution=source_dist,
+    )

@@ -1,22 +1,24 @@
 """Entities endpoints — database-backed entity listing and detail."""
 from __future__ import annotations
 
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 
 from app.core.database import get_db
 from app.models import Entity, DocumentEntity, RiskSignal, Document
+from app.schemas import EntityListResponse, EntityDetailResponse, EntityListItem
 
 router = APIRouter(tags=["entities"])
 
 
-@router.get("/entities")
+@router.get("/entities", response_model=EntityListResponse)
 def list_entities(
-    search: str | None = Query(default=None),
-    entity_type: str | None = Query(default=None),
+    search: Optional[str] = Query(default=None),
+    entity_type: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
-) -> dict:
+) -> EntityListResponse:
     query = db.query(Entity)
     if search:
         query = query.filter(
@@ -49,26 +51,23 @@ def list_entities(
             avg_sentiment = 0.0
             last_seen = None
 
-        items.append({
-            "id": entity.id,
-            "canonical_name": entity.canonical_name,
-            "ticker": entity.ticker,
-            "entity_type": entity.entity_type,
-            "event_count": event_count,
-            "avg_risk": round(avg_risk, 2),
-            "avg_sentiment": round(avg_sentiment, 4),
-            "last_seen": last_seen.isoformat() if last_seen else None,
-        })
+        items.append(EntityListItem(
+            id=entity.id,
+            canonical_name=entity.canonical_name,
+            ticker=entity.ticker,
+            entity_type=entity.entity_type,
+            event_count=event_count,
+            avg_risk=round(avg_risk, 2),
+            avg_sentiment=round(avg_sentiment, 4),
+            last_seen=last_seen.isoformat() if last_seen else None,
+        ))
 
-    # Sort by event count descending
-    items.sort(key=lambda x: x["event_count"], reverse=True)
-
-    return {"items": items, "count": len(items)}
+    items.sort(key=lambda x: x.event_count, reverse=True)
+    return EntityListResponse(items=items, count=len(items))
 
 
-@router.get("/entities/{entity_id}")
-def get_entity(entity_id: str, db: Session = Depends(get_db)) -> dict:
-    # Find entity by ID, name, or ticker
+@router.get("/entities/{entity_id}", response_model=EntityDetailResponse)
+def get_entity(entity_id: str, db: Session = Depends(get_db)) -> EntityDetailResponse:
     entity = db.query(Entity).filter(Entity.id == entity_id).first()
     if not entity:
         entity = db.query(Entity).filter(Entity.canonical_name == entity_id).first()
@@ -77,7 +76,6 @@ def get_entity(entity_id: str, db: Session = Depends(get_db)) -> dict:
     if not entity:
         raise HTTPException(status_code=404, detail="Entity not found")
 
-    # Get related documents and signals
     doc_entities = db.query(DocumentEntity).filter(DocumentEntity.entity_id == entity.id).all()
     doc_ids = [de.document_id for de in doc_entities]
 
@@ -119,18 +117,20 @@ def get_entity(entity_id: str, db: Session = Depends(get_db)) -> dict:
     avg_risk = sum(e["impact_score"] for e in events) / max(1, len(events))
     avg_sentiment = sum(e["sentiment_score"] for e in events) / max(1, len(events))
 
-    return {
-        "entity": {
-            "id": entity.id,
-            "canonical_name": entity.canonical_name,
-            "ticker": entity.ticker,
-            "entity_type": entity.entity_type,
-            "event_count": len(events),
-            "avg_risk": round(avg_risk, 2),
-            "avg_sentiment": round(avg_sentiment, 4),
-            "last_seen": events[0]["timestamp"] if events else None,
-        },
-        "events": events,
-        "risk_timeline": risk_timeline,
-        "sentiment_timeline": sentiment_timeline,
-    }
+    item = EntityListItem(
+        id=entity.id,
+        canonical_name=entity.canonical_name,
+        ticker=entity.ticker,
+        entity_type=entity.entity_type,
+        event_count=len(events),
+        avg_risk=round(avg_risk, 2),
+        avg_sentiment=round(avg_sentiment, 4),
+        last_seen=events[0]["timestamp"] if events else None,
+    )
+
+    return EntityDetailResponse(
+        entity=item,
+        events=events,
+        risk_timeline=risk_timeline,
+        sentiment_timeline=sentiment_timeline,
+    )
