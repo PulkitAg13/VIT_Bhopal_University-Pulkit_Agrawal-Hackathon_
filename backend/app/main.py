@@ -45,14 +45,15 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         log.warning("Portfolio seeding skipped: %s", exc)
 
-    # Pre-load models in background (non-blocking)
+    # Pre-load models asynchronously in background (truly non-blocking)
+    import asyncio
     try:
         from app.core.model_manager import get_model_manager
         mm = get_model_manager()
-        # Load models (this can take time)
-        mm.load_all()
+        asyncio.create_task(asyncio.to_thread(mm.load_all))
+        log.info("Model pre-loading scheduled in background")
     except Exception as exc:
-        log.warning("Model pre-loading failed: %s — will load on first request", exc)
+        log.warning("Model background scheduling failed: %s", exc)
 
     log.info("FinRisk Intelligence ready")
     yield

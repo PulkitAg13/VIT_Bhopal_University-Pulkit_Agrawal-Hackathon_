@@ -1,7 +1,17 @@
-"""Real entity extraction using dictionary + regex pattern matching.
+"""Entity extraction using transformer NER + dictionary/regex resolution.
 
-Uses config/entities.yaml as resolution layer plus regex patterns
-for ticker symbols, organizations, and financial entities.
+Architecture:
+    Raw text
+     ↓
+    NER model (dslim/bert-base-NER) → ORG / GPE / PERSON / etc.
+     ↓
+    Financial entity resolver (config/entities.yaml)
+     ↓
+    Canonical entity + Ticker + Entity type
+
+The NER model provides transformer-based extraction. The dictionary/regex
+layer provides financial-domain resolution (tickers, commodities, etc.).
+Both layers work together — NER for discovery, dictionary for resolution.
 """
 from __future__ import annotations
 
@@ -11,6 +21,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
+
+from app.core.model_manager import get_model_manager
 
 logger = logging.getLogger("finrisk.nlp.entities")
 
@@ -49,6 +61,8 @@ def _load_config() -> None:
         "the fed": "federal reserve",
         "us federal reserve": "federal reserve",
         "federal reserve": "federal reserve",
+        "exxonmobil": "exxonmobil",
+        "exxon mobil": "exxonmobil",
         "oil": "crude oil",
     }
     for alias, canonical in extra_aliases.items():
@@ -63,6 +77,7 @@ _load_config()
 _ORG_PATTERNS = [
     r"\b(Apple|Microsoft|NVIDIA|Tesla|Amazon|Meta|Google|Alphabet)\b",
     r"\b(JPMorgan|Bank of America|Goldman Sachs|Morgan Stanley|Citigroup)\b",
+    r"\b(ExxonMobil|Exxon Mobil|Chevron)\b",
     r"\b(Federal Reserve|Fed|ECB|Bank of England|BOJ)\b",
     r"\b(SEC|CFTC|OCC|FINRA|FDIC)\b",
 ]
@@ -98,13 +113,78 @@ CURRENCY_MAP = {
     "gbp": {"canonical_name": "British Pound", "ticker": "GBP", "type": "currency"},
 }
 
+# NER entity group to financial entity type mapping
+_NER_TYPE_MAP = {
+    "ORG": "organization",
+    "PER": "person",
+    "LOC": "region",
+    "MISC": "other",
+}
+
+
+def _resolve_ner_entity(word: str, entity_group: str) -> Dict[str, Any] | None:
+    """Try to resolve a NER-extracted entity to a canonical financial entity."""
+    lowered = word.lower().strip()
+    
+    # Check direct match in entity map
+    if lowered in _ENTITY_MAP:
+        details = _ENTITY_MAP[lowered]
+        return {
+            "canonical_name": details["canonical_name"],
+            "ticker": details.get("ticker"),
+            "type": details["type"],
+            "confidence": 0.92,
+            "extraction_method": "ner+resolution",
+        }
+    
+    # Check aliases
+    if lowered in _ALIASES:
+        canonical_key = _ALIASES[lowered]
+        if canonical_key in _ENTITY_MAP:
+            details = _ENTITY_MAP[canonical_key]
+            return {
+                "canonical_name": details["canonical_name"],
+                "ticker": details.get("ticker"),
+                "type": details["type"],
+                "confidence": 0.90,
+                "extraction_method": "ner+alias",
+            }
+    
+    # Check if it's a known ticker
+    if word.upper() in _ALIASES:
+        canonical_key = _ALIASES[word.upper()]
+        if canonical_key in _ENTITY_MAP:
+            details = _ENTITY_MAP[canonical_key]
+            return {
+                "canonical_name": details["canonical_name"],
+                "ticker": details.get("ticker"),
+                "type": details["type"],
+                "confidence": 0.90,
+                "extraction_method": "ner+ticker",
+            }
+    
+    # Unresolved NER entity — keep with generic type
+    ent_type = _NER_TYPE_MAP.get(entity_group, "organization")
+    return {
+        "canonical_name": word,
+        "ticker": None,
+        "type": ent_type,
+        "confidence": 0.70,
+        "extraction_method": "ner",
+    }
+
 
 def extract_entities(text: str) -> List[Dict[str, Any]]:
-    """Extract and resolve entities from financial text."""
+    """Extract and resolve entities from financial text.
+    
+    Uses transformer NER model as primary extractor, with dictionary/regex
+    as secondary resolution and enrichment layer.
+    """
     found: List[Dict[str, Any]] = []
     seen_names: set = set()
 
-    def _add(canonical_name: str, ticker: str | None, entity_type: str, confidence: float) -> None:
+    def _add(canonical_name: str, ticker: str | None, entity_type: str, 
+             confidence: float, method: str = "dictionary") -> None:
         if canonical_name in seen_names:
             return
         seen_names.add(canonical_name)
@@ -113,60 +193,81 @@ def extract_entities(text: str) -> List[Dict[str, Any]]:
             "ticker": ticker,
             "type": entity_type,
             "confidence": round(confidence, 4),
+            "extraction_method": method,
         })
 
+    # ── Stage 1: Transformer NER ─────────────────────────
+    mm = get_model_manager()
+    ner_results = mm.extract_ner(text)
+    
+    for ner_ent in ner_results:
+        word = ner_ent["word"].replace("##", "")  # Handle wordpiece tokens
+        if len(word) < 2:
+            continue
+        resolved = _resolve_ner_entity(word, ner_ent["entity_group"])
+        if resolved and resolved["canonical_name"] not in seen_names:
+            _add(
+                resolved["canonical_name"],
+                resolved.get("ticker"),
+                resolved["type"],
+                resolved["confidence"],
+                resolved.get("extraction_method", "ner"),
+            )
+
+    # ── Stage 2: Dictionary resolution (catch what NER missed) ──
     lowered = text.lower()
 
-    # 1. Match against config entity map (dictionary resolution)
+    # Match against config entity map
     for key, details in _ENTITY_MAP.items():
         if key in lowered:
-            _add(details["canonical_name"], details.get("ticker"), details["type"], 0.88)
+            _add(details["canonical_name"], details.get("ticker"), details["type"], 0.85, "dictionary")
 
-    # 2. Check aliases
+    # Check aliases
     for alias, canonical_key in _ALIASES.items():
         if alias.lower() in lowered and canonical_key in _ENTITY_MAP:
             details = _ENTITY_MAP[canonical_key]
-            _add(details["canonical_name"], details.get("ticker"), details["type"], 0.85)
+            _add(details["canonical_name"], details.get("ticker"), details["type"], 0.82, "alias")
 
-    # 3. Regex: ticker symbols
+    # ── Stage 3: Regex patterns ──────────────────────────
+    # Ticker symbols
     for match in _TICKER_PATTERN.findall(text):
         if match in _KNOWN_TICKERS and match.upper() in _ALIASES:
             canonical_key = _ALIASES[match.upper()]
             if canonical_key in _ENTITY_MAP:
                 details = _ENTITY_MAP[canonical_key]
-                _add(details["canonical_name"], details.get("ticker"), details["type"], 0.90)
+                _add(details["canonical_name"], details.get("ticker"), details["type"], 0.88, "ticker")
 
-    # 4. Regex: organizations
+    # Organizations
     for pattern in _ORG_PATTERNS:
         for match in re.findall(pattern, text, re.IGNORECASE):
             name_lower = match.lower()
             resolved = _ALIASES.get(name_lower) or name_lower
             if resolved in _ENTITY_MAP:
                 details = _ENTITY_MAP[resolved]
-                _add(details["canonical_name"], details.get("ticker"), details["type"], 0.85)
+                _add(details["canonical_name"], details.get("ticker"), details["type"], 0.82, "regex")
             else:
-                _add(match, None, "organization", 0.70)
+                _add(match, None, "organization", 0.68, "regex")
 
-    # 5. Commodities
+    # Commodities
     for match in _COMMODITY_PATTERN.findall(text):
         key = match.lower()
         if key in COMMODITY_MAP:
             c = COMMODITY_MAP[key]
-            _add(c["canonical_name"], c["ticker"], c["type"], 0.82)
+            _add(c["canonical_name"], c["ticker"], c["type"], 0.80, "pattern")
 
-    # 6. Currencies
+    # Currencies
     for match in _CURRENCY_PATTERN.findall(text):
         key = match.lower()
         if key in CURRENCY_MAP:
             c = CURRENCY_MAP[key]
-            _add(c["canonical_name"], c["ticker"], c["type"], 0.80)
+            _add(c["canonical_name"], c["ticker"], c["type"], 0.78, "pattern")
 
-    # 7. Countries/Regions
+    # Countries/Regions
     for match in _COUNTRY_PATTERN.findall(text):
-        _add(match, None, "region", 0.75)
+        _add(match, None, "region", 0.72, "pattern")
 
     # Fallback if nothing found
     if not found:
-        _add("General Market", None, "macro", 0.45)
+        _add("General Market", None, "macro", 0.45, "fallback")
 
     return found

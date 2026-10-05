@@ -6,13 +6,16 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-    echo=False,
-)
+engine_args = {
+    "pool_pre_ping": True,
+    "echo": False,
+}
+if "postgresql" in settings.database_url:
+    engine_args["connect_args"] = {"connect_timeout": 2}
+    engine_args["pool_size"] = 10
+    engine_args["max_overflow"] = 20
+
+engine = create_engine(settings.database_url, **engine_args)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

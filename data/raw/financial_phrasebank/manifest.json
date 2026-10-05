@@ -1,0 +1,23 @@
+{
+  "name": "financial_phrasebank",
+  "hf_path": "takala/financial_phrasebank",
+  "url": "https://huggingface.co/datasets/takala/financial_phrasebank",
+  "license": "CC BY-SA 4.0",
+  "downloaded_at": "2026-10-05T14:12:37.955094+00:00",
+  "rows": 2264,
+  "splits": {
+    "train": 2264
+  },
+  "columns": [
+    "label",
+    "label_text",
+    "sentence"
+  ],
+  "text_column": "sentence",
+  "label_column": "label",
+  "checksums": {
+    "train": "6d0131937ed4216c31f045c37c689f3480cc4777c3458422126d18d61d91c630"
+  },
+  "status": "downloaded",
+  "schema_validated": true
+}

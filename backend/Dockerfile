@@ -20,5 +20,5 @@ COPY . /app
 
 EXPOSE 8000
 
-# Start: create tables then run server (no || true — fail visibly)
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Start: apply migrations then run server (fails visibly if migrations fail)
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

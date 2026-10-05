@@ -1,0 +1,24 @@
+{
+  "name": "twitter_sentiment",
+  "hf_path": "zeroshot/twitter-financial-news-sentiment",
+  "url": "https://huggingface.co/datasets/zeroshot/twitter-financial-news-sentiment",
+  "license": "MIT",
+  "downloaded_at": "2026-10-05T14:12:37.634382+00:00",
+  "rows": 11931,
+  "splits": {
+    "train": 9543,
+    "validation": 2388
+  },
+  "columns": [
+    "label",
+    "text"
+  ],
+  "text_column": "text",
+  "label_column": "label",
+  "checksums": {
+    "train": "da647cb1cc3ee514e91fc81287feb28ee0e755dfe651f2f61718c1fc08a87a6e",
+    "validation": "656706ad94e6c4bbede9dddb2a7878658675eaade8eeb6e6397504418ae97b62"
+  },
+  "status": "downloaded",
+  "schema_validated": true
+}

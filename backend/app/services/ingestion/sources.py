@@ -113,8 +113,10 @@ class DatasetReplaySource:
         # Try loading from parquet/csv/json in data/raw/{dataset_name}/
         dataset_dir = _DATA_DIR / "raw" / self.dataset_name
         if not dataset_dir.exists():
-            logger.warning("Dataset directory not found: %s", dataset_dir)
-            return self._fallback_items(max_items)
+            raise FileNotFoundError(
+                f"Dataset '{self.dataset_name}' not found at {dataset_dir}. "
+                f"Run 'python scripts/download_datasets.py' to download real HuggingFace datasets."
+            )
 
         texts = []
 
@@ -133,6 +135,8 @@ class DatasetReplaySource:
 
         # Try JSON
         for json_file in dataset_dir.glob("*.json"):
+            if json_file.name == "manifest.json":
+                continue
             try:
                 with open(json_file, "r", encoding="utf-8") as fh:
                     data = json.load(fh)
@@ -160,7 +164,10 @@ class DatasetReplaySource:
                 logger.warning("JSONL read error: %s", exc)
 
         if not texts:
-            return self._fallback_items(max_items)
+            raise FileNotFoundError(
+                f"No records found in dataset '{self.dataset_name}' at {dataset_dir}. "
+                f"Run 'python scripts/download_datasets.py' to download real datasets."
+            )
 
         if shuffle:
             random.shuffle(texts)
@@ -175,24 +182,6 @@ class DatasetReplaySource:
 
         logger.info("Dataset replay: %d items from %s (total available: %d)",
                     len(items), self.dataset_name, len(texts))
-        return items
-
-    def _fallback_items(self, max_items: int) -> List[IngestedItem]:
-        """Return a small set of legitimate financial texts when dataset not downloaded."""
-        fallback_texts = [
-            "Fed signals aggressive rate increases amid persistent inflation pressure, raising concerns about corporate earnings impact.",
-            "Major banks face liquidity stress after credit spreads widen sharply in response to deteriorating economic conditions.",
-            "Technology sector earnings exceed expectations as AI infrastructure spending accelerates across the industry.",
-            "Oil prices surge on escalating geopolitical tensions in key energy producing regions, impacting global supply chains.",
-            "Central bank holds rates steady while warning of persistent inflationary pressures in the broader economy.",
-        ]
-        items = []
-        for text in fallback_texts[:max_items]:
-            items.append(IngestedItem(
-                text=text,
-                source_name="Synthetic Demo Dataset",
-                source_type="demo",
-            ))
         return items
 
 
@@ -244,9 +233,16 @@ class DemoSource:
 
 def get_source(source_type: str, ticker: str = "AAPL", dataset_name: str = "twitter_sentiment"):
     """Factory to get the right source."""
-    if source_type == "rss" or source_type == "yahoo_rss":
+    s_type = source_type.lower() if source_type else "demo"
+    if s_type in ("rss", "yahoo_rss", "live_news"):
         return RSSNewsSource(ticker)
-    elif source_type == "dataset":
+    elif s_type in ("dataset", "huggingface", "dataset_replay"):
         return DatasetReplaySource(dataset_name)
-    else:
+    elif s_type == "demo":
         return DemoSource()
+    else:
+        raise ValueError(
+            f"Unsupported source type: '{source_type}'. "
+            f"Supported sources: 'rss' (Yahoo Finance), 'dataset' (HuggingFace replay), 'demo' (deterministic scenarios)."
+        )
+

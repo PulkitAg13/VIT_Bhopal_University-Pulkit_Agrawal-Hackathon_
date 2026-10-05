@@ -1,5 +1,5 @@
 """
-Real dataset download script using HuggingFace datasets library.
+Real dataset download script using HuggingFace datasets and huggingface_hub.
 
 Downloads:
 1. Twitter Financial News Topic (zeroshot/twitter-financial-news-topic)
@@ -10,10 +10,16 @@ Saves to data/raw/ and generates manifest with actual row counts.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Safe stdout encoding on Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
@@ -24,25 +30,39 @@ DATASETS = [
         "name": "twitter_topic",
         "hf_path": "zeroshot/twitter-financial-news-topic",
         "url": "https://huggingface.co/datasets/zeroshot/twitter-financial-news-topic",
+        "license": "MIT",
         "text_column": "text",
         "label_column": "label",
+        "method": "hf_datasets",
     },
     {
         "name": "twitter_sentiment",
         "hf_path": "zeroshot/twitter-financial-news-sentiment",
         "url": "https://huggingface.co/datasets/zeroshot/twitter-financial-news-sentiment",
+        "license": "MIT",
         "text_column": "text",
         "label_column": "label",
+        "method": "hf_datasets",
     },
     {
         "name": "financial_phrasebank",
         "hf_path": "takala/financial_phrasebank",
-        "hf_config": "sentences_allagree",
         "url": "https://huggingface.co/datasets/takala/financial_phrasebank",
+        "license": "CC BY-SA 4.0",
         "text_column": "sentence",
         "label_column": "label",
+        "method": "hub_zip",
     },
 ]
+
+
+def file_checksum(filepath: Path) -> str:
+    """Calculate SHA256 checksum of a file."""
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def download_dataset(item: dict) -> dict:
@@ -66,52 +86,86 @@ def download_dataset(item: dict) -> dict:
     print(f"  Source: {item['url']}")
 
     try:
-        from datasets import load_dataset
-
-        kwargs = {"path": item["hf_path"]}
-        if item.get("hf_config"):
-            kwargs["name"] = item["hf_config"]
-
-        dataset = load_dataset(**kwargs)
-
-        # Get all splits
         total_rows = 0
         columns = set()
         splits_info = {}
+        checksums = {}
 
-        for split_name in dataset:
-            split = dataset[split_name]
-            split_rows = len(split)
-            total_rows += split_rows
-            columns.update(split.column_names)
-            splits_info[split_name] = split_rows
+        if item["method"] == "hf_datasets":
+            from datasets import load_dataset
+            dataset = load_dataset(item["hf_path"])
 
-            # Save to JSON
-            output_file = dest / f"{split_name}.json"
+            for split_name in dataset:
+                split = dataset[split_name]
+                split_rows = len(split)
+                total_rows += split_rows
+                columns.update(split.column_names)
+                splits_info[split_name] = split_rows
+
+                # Save to JSON
+                output_file = dest / f"{split_name}.json"
+                records = []
+                for row in split:
+                    record = {}
+                    for col in split.column_names:
+                        val = row[col]
+                        record[col] = val if not hasattr(val, "item") else val.item()
+                    records.append(record)
+
+                output_file.write_text(
+                    json.dumps({"data": records}, indent=None, ensure_ascii=False),
+                    encoding="utf-8",
+                )
+                checksums[split_name] = file_checksum(output_file)
+                print(f"  Split '{split_name}': {split_rows} rows -> {output_file.name}")
+
+        elif item["method"] == "hub_zip":
+            from huggingface_hub import hf_hub_download
+            zip_path = hf_hub_download(
+                repo_id=item["hf_path"],
+                filename="data/FinancialPhraseBank-v1.0.zip",
+                repo_type="dataset",
+            )
             records = []
-            for i, row in enumerate(split):
-                record = {}
-                for col in split.column_names:
-                    val = row[col]
-                    record[col] = val if not hasattr(val, 'item') else val.item()
-                records.append(record)
+            label_map = {"negative": 0, "positive": 1, "neutral": 2}
+            with zipfile.ZipFile(zip_path, "r") as z:
+                with z.open("FinancialPhraseBank-v1.0/Sentences_AllAgree.txt") as f:
+                    for line in f:
+                        line_str = line.decode("latin-1").strip()
+                        if "@" in line_str:
+                            parts = line_str.rsplit("@", 1)
+                            sentence = parts[0].strip()
+                            label_str = parts[1].strip().lower()
+                            label_int = label_map.get(label_str, 2)
+                            records.append({
+                                "sentence": sentence,
+                                "label": label_int,
+                                "label_text": label_str,
+                            })
 
+            output_file = dest / "train.json"
             output_file.write_text(
                 json.dumps({"data": records}, indent=None, ensure_ascii=False),
                 encoding="utf-8",
             )
-            print(f"  Split '{split_name}': {split_rows} rows → {output_file.name}")
+            total_rows = len(records)
+            columns = ["sentence", "label", "label_text"]
+            splits_info["train"] = total_rows
+            checksums["train"] = file_checksum(output_file)
+            print(f"  Split 'train' (Sentences_AllAgree): {total_rows} rows -> {output_file.name}")
 
         manifest = {
             "name": item["name"],
             "hf_path": item["hf_path"],
             "url": item["url"],
+            "license": item["license"],
             "downloaded_at": datetime.now(timezone.utc).isoformat(),
             "rows": total_rows,
             "splits": splits_info,
             "columns": sorted(columns),
             "text_column": item["text_column"],
             "label_column": item["label_column"],
+            "checksums": checksums,
             "status": "downloaded",
             "schema_validated": True,
         }
@@ -166,7 +220,6 @@ def main() -> None:
 
     if success_count < len(DATASETS):
         print("\nWARNING: Some datasets failed to download.")
-        print("Run 'pip install datasets' if not installed.")
         sys.exit(1)
 
 

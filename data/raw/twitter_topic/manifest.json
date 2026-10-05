@@ -1,0 +1,24 @@
+{
+  "name": "twitter_topic",
+  "hf_path": "zeroshot/twitter-financial-news-topic",
+  "url": "https://huggingface.co/datasets/zeroshot/twitter-financial-news-topic",
+  "license": "MIT",
+  "downloaded_at": "2026-10-05T14:12:29.615086+00:00",
+  "rows": 21107,
+  "splits": {
+    "train": 16990,
+    "validation": 4117
+  },
+  "columns": [
+    "label",
+    "text"
+  ],
+  "text_column": "text",
+  "label_column": "label",
+  "checksums": {
+    "train": "f4920803f8bb822219071f44ee79871c5e2621d51708f365ac5bd5e30261d3e1",
+    "validation": "b4d9b56918f9ca86ad11035c5d9ae750da3e116930b3c17919f609e97b3edde5"
+  },
+  "status": "downloaded",
+  "schema_validated": true
+}

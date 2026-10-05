@@ -20,7 +20,12 @@ def get_redis() -> Optional[redis.Redis]:
         return _redis_client
     try:
         settings = get_settings()
-        _redis_client = redis.from_url(settings.redis_url, decode_responses=True)
+        _redis_client = redis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+            socket_connect_timeout=1.0,
+            socket_timeout=1.0,
+        )
         _redis_client.ping()
         logger.info("Redis connected: %s", settings.redis_url)
         return _redis_client

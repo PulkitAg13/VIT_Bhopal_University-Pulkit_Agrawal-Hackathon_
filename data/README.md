@@ -57,9 +57,12 @@ All datasets are downloaded from [HuggingFace](https://huggingface.co/) using `s
 
 ## Download Instructions
 
+> **Storage Policy:** Raw datasets are NOT committed into Git (excluded via `.gitignore`).
+> They must be downloaded upon setup using `scripts/download_datasets.py`.
+
 ```bash
 # Install dependencies
-pip install datasets
+pip install datasets huggingface_hub
 
 # Download all datasets
 python scripts/download_datasets.py

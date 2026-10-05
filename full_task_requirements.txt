@@ -1,0 +1,1536 @@
+<USER_REQUEST>
+You are working on an existing hackathon project called:
+
+FINRISK INTELLIGENCE
+
+Do NOT rebuild the project blindly from scratch.
+
+I am giving you an existing repository that has already been partially implemented.
+
+Your task is to perform a COMPLETE ENGINEERING REMEDIATION of the existing codebase.
+
+The goal is NOT to make the project merely look complete.
+
+The goal is:
+
+EVERY FEATURE MUST ACTUALLY WORK END-TO-END.
+
+Do not claim a feature is implemented merely because:
+- a dependency exists in requirements.txt
+- a Docker container exists
+- a route exists
+- a model name appears in the README
+- a UI card exists
+
+You must verify actual runtime behavior.
+
+============================================================
+1. PROJECT REQUIREMENTS
+============================================================
+
+The mandatory hackathon requirements are:
+
+CORE AI/NLP RISK ENGINE:
+
+1. Ingest text from at least two sources:
+   - live financial news
+   - social/financial dataset representing social media/news posts
+
+2. For every text/event produce:
+   - Sentiment Score: -1 to +1
+   - Event Classification
+   - Impact Score: 1-10
+
+3. Expose structured output through FastAPI.
+
+DOWNSTREAM MODULE:
+
+Use Module B:
+Strategic Event-Driven Portfolio Stress Testing.
+
+When:
+- event is high impact
+- impact score >= 7
+- event belongs to a stress-triggering category
+
+the system must automatically trigger the appropriate stress scenario.
+
+The complete flow must work:
+
+SOURCE
+  ↓
+INGESTION
+  ↓
+NLP
+  ↓
+ENTITY RESOLUTION
+  ↓
+EVENT CLASSIFICATION
+  ↓
+EMBEDDING
+  ↓
+EVENT CLUSTERING
+  ↓
+CORROBORATION
+  ↓
+NOVELTY
+  ↓
+MARKET CONTEXT
+  ↓
+PORTFOLIO EXPOSURE
+  ↓
+IMPACT SCORE
+  ↓
+RISK SIGNAL
+  ↓
+AUTOMATIC STRESS TRIGGER
+  ↓
+STRESS ENGINE
+  ↓
+POSTGRESQL
+  ↓
+REDIS PUB/SUB
+  ↓
+WEBSOCKET
+  ↓
+REACT DASHBOARD
+
+============================================================
+2. ABSOLUTE RULE: NO FAKE FUNCTIONALITY
+============================================================
+
+This is the most important instruction.
+
+REMOVE all fake or misleading fallbacks.
+
+DO NOT silently replace real ML/data processing with:
+- keyword sentiment
+- keyword event classification
+- random embeddings
+- fabricated market values
+- fabricated portfolio exposure
+- synthetic data when real dataset was requested
+- hardcoded frontend metrics
+- fake evaluation metrics
+
+If a required service/model/data source is unavailable:
+
+SHOW AN EXPLICIT ERROR.
+
+Example:
+
+FinBERT unavailable:
+    return a controlled model-unavailable error
+    OR mark the system as degraded
+
+Do NOT silently execute a keyword algorithm.
+
+Embedding model unavailable:
+    NEVER generate random vectors.
+
+Dataset unavailable:
+    NEVER silently use synthetic records.
+
+Synthetic data is allowed ONLY in an explicitly labelled:
+"Demo / Synthetic Mode".
+
+The UI must clearly distinguish:
+
+REAL RSS
+REAL DOWNLOADED DATASET
+SYNTHETIC DEMO DATA
+
+============================================================
+3. FIRST: AUDIT THE EXISTING REPOSITORY
+============================================================
+
+Before modifying code:
+
+1. Inspect the complete repository.
+2. Identify what already works.
+3. Identify broken features.
+4. Identify mock/stub/fallback functionality.
+5. Identify hardcoded frontend data.
+6. Identify unused dependencies.
+7. Identify API/frontend mismatches.
+8. Identify database problems.
+9. Identify Docker problems.
+10. Identify test coverage gaps.
+
+Create:
+
+docs/remediation_report.md
+
+containing:
+
+- current status
+- broken components
+- fixes performed
+- verification commands
+- final test results
+
+Do NOT preserve outdated claims from previous audit documents.
+
+============================================================
+4. DATASETS — MUST BE REAL
+============================================================
+
+Use these datasets:
+
+Twitter Financial News Topic:
+https://huggingface.co/datasets/zeroshot/twitter-financial-news-topic
+
+Twitter Financial News Sentiment:
+https://huggingface.co/datasets/zeroshot/twitter-financial-news-sentiment
+
+Financial PhraseBank:
+https://huggingface.co/datasets/takala/financial_phrasebank
+
+The project must contain:
+
+scripts/download_datasets.py
+
+The script must:
+
+1. Install/use HuggingFace datasets.
+2. Download all datasets.
+3. Validate expected columns.
+4. Validate row counts > 0.
+5. Save them under:
+
+data/raw/
+
+6. Create a manifest:
+
+data/raw/manifest.json
+
+with:
+
+- dataset name
+- HuggingFace URL
+- license
+- split
+- row count
+- columns
+- download timestamp
+- checksum if practical
+
+IMPORTANT:
+
+Do NOT commit huge raw datasets into Git.
+
+The repository must contain:
+- downloader
+- dataset documentation
+- manifest/example
+- reproducible instructions
+
+The application must NOT silently fall back to synthetic data if datasets are missing.
+
+If dataset ingestion is requested and dataset is unavailable:
+
+return a clear API error.
+
+============================================================
+5. DATASET LICENSE / DOCUMENTATION
+============================================================
+
+Update:
+
+data/README.md
+
+with:
+
+- exact dataset URLs
+- licenses
+- intended use
+- columns
+- download instructions
+- whether data is committed or downloaded at runtime
+
+Do not falsely imply raw datasets are included if they are not.
+
+============================================================
+6. FINBERT — REAL IMPLEMENTATION
+============================================================
+
+Use:
+
+ProsusAI/finbert
+
+for financial sentiment.
+
+The pipeline must produce:
+
+{
+  label,
+  score,
+  confidence,
+  probabilities,
+  model
+}
+
+Score:
+
+positive_probability - negative_probability
+
+range:
+
+-1 to +1
+
+The system must expose the actual model name.
+
+Do NOT use keyword sentiment as a production fallback.
+
+Implement:
+
+- lazy model loading
+- model caching
+- model readiness status
+- clear model loading errors
+- inference timing
+
+The health endpoint must report:
+
+finbert:
+  loading
+  ready
+  error
+
+Do not claim "live" if the model is unavailable.
+
+============================================================
+7. EVENT CLASSIFICATION
+============================================================
+
+Use a real transformer-based classifier.
+
+Current project uses zero-shot classification.
+
+You may keep the zero-shot architecture if it is stable.
+
+However:
+
+DO NOT duplicate the taxonomy in multiple places.
+
+Load canonical labels from:
+
+config/event_taxonomy.yaml
+
+The taxonomy must contain exactly one source of truth.
+
+Include:
+
+Geopolitical
+Macroeconomic
+Credit Event
+Merger & Acquisition
+Product Launch
+Earnings
+Regulatory / Legal
+Monetary Policy
+Commodity / Energy
+Market Movement
+Liquidity
+Supply Chain
+Management / Leadership
+Corporate Action
+Other
+
+The classifier must return:
+
+- predicted class
+- confidence
+- top candidate scores
+- model name
+
+============================================================
+8. ENTITY EXTRACTION
+============================================================
+
+Upgrade the current dictionary/regex-only entity extraction.
+
+Implement a proper NER stage using a transformer NER model.
+
+Recommended architecture:
+
+Raw text
+ ↓
+NER model
+ ↓
+ORG / GPE / PERSON / etc.
+ ↓
+Financial entity resolver
+ ↓
+Canonical entity
+ ↓
+Ticker
+ ↓
+Entity type
+
+Keep:
+
+config/entities.yaml
+
+as the canonical resolution layer.
+
+Support:
+
+- companies
+- banks
+- regulators
+- countries
+- commodities
+- currencies
+- central banks
+
+Do not remove ticker/alias resolution.
+
+Use NER + resolution together.
+
+============================================================
+9. EMBEDDINGS
+============================================================
+
+Use:
+
+sentence-transformers
+
+with:
+
+all-MiniLM-L6-v2
+
+or another lightweight production-suitable embedding model.
+
+Implement:
+
+- embedding generation
+- cosine similarity
+- persistent embeddings
+- caching where appropriate
+
+CRITICAL:
+
+REMOVE ANY RANDOM EMBEDDING FALLBACK.
+
+Never use:
+
+np.random.randn(...)
+
+for missing embeddings.
+
+If the embedding model is unavailable:
+
+return a clear model error/degraded state.
+
+============================================================
+10. EVENT CLUSTERING
+============================================================
+
+Improve the existing semantic event clustering.
+
+A new event should be assigned to an existing cluster only when:
+
+1. semantic similarity exceeds threshold
+2. event class is compatible
+3. entity overlap is compatible
+4. time window is reasonable
+
+Implement proper centroid updates.
+
+Example:
+
+new centroid =
+(old centroid * old count + new embedding) / new count
+
+Store updated centroid.
+
+Cluster lifecycle:
+
+NEW
+DEVELOPING
+ESCALATING
+STABLE
+RESOLVED
+
+Do not define lifecycle merely by:
+
+event_count >= 3
+event_count >= 5
+
+Use:
+
+- event frequency
+- recency
+- impact trend
+- sentiment trend
+- corroboration
+- time since last observation
+
+Implement a real resolution rule.
+
+============================================================
+11. CORROBORATION
+============================================================
+
+Corroboration must mean:
+
+the same underlying event is independently observed by multiple providers.
+
+Track:
+
+provider
+source name
+source type
+domain
+document URL
+
+Example:
+
+Yahoo Finance article
+Reuters article
+Twitter post
+Reddit post
+
+should count as independent sources.
+
+Two Yahoo articles should NOT count as two independent providers.
+
+For a cluster calculate:
+
+- independent_provider_count
+- similar_event_count
+- corroboration_score
+
+Display this in the UI.
+
+============================================================
+12. NOVELTY
+============================================================
+
+Novelty must use semantic similarity.
+
+For a new event:
+
+novelty =
+1 - maximum similarity to recent relevant events
+
+Use:
+
+- embeddings
+- entity
+- event class
+- configurable time window
+
+Store novelty score.
+
+Show it in Event Detail.
+
+============================================================
+13. MARKET CONTEXT
+============================================================
+
+REMOVE:
+
+market_volatility = 0.5
+
+as a permanent hardcoded value.
+
+Use real market data where possible.
+
+Use yfinance for:
+
+- relevant stock volatility
+- recent price movement
+- market benchmark movement
+
+For example:
+
+AAPL event
+ ↓
+AAPL 30-day realized volatility
+
+Macro event:
+ ↓
+SPY / relevant benchmark
+
+Cache market data so that the application does not make repeated expensive calls.
+
+If market data is unavailable:
+
+mark:
+
+market_context_available = false
+
+Do not silently pretend a real value exists.
+
+============================================================
+14. PORTFOLIO EXPOSURE
+============================================================
+
+REMOVE heuristic:
+
+portfolio_exposure = 0.7
+
+based only on whether an entity exists.
+
+Calculate actual exposure.
+
+Example:
+
+Apple event
+ ↓
+Portfolio positions
+ ↓
+AAPL equity + Apple corporate bond
+ ↓
+actual notional
+ ↓
+portfolio percentage exposure
+
+Return:
+
+entity_exposure_value
+entity_exposure_percentage
+affected_positions
+
+Use PostgreSQL-backed portfolio data.
+
+============================================================
+15. IMPACT SCORE
+============================================================
+
+Keep the impact score explainable.
+
+Final score:
+
+1-10
+
+Components can include:
+
+- sentiment magnitude
+- event severity
+- source credibility
+- corroboration
+- novelty
+- recency
+- entity relevance
+- market volatility
+- portfolio exposure
+
+But every component must come from actual data whenever possible.
+
+Display:
+
+component score
+component weight
+component contribution
+
+Example:
+
+Sentiment       1.2
+Event Severity  1.8
+Corroboration   0.9
+Novelty         0.8
+Exposure        1.5
+Market Risk     0.7
+...
+
+Then:
+
+Final Impact = 8.4 / 10
+
+Do NOT fabricate MAE/RMSE for impact because there is no real ground truth unless you create and document a defensible labelled benchmark.
+
+============================================================
+16. AUTOMATIC STRESS TRIGGER
+============================================================
+
+This is mandatory.
+
+When:
+
+impact_score >= 7
+
+AND event category is eligible:
+
+Geopolitical
+Macroeconomic
+Credit Event
+Liquidity
+Commodity / Energy
+Monetary Policy
+
+automatically trigger:
+
+appropriate stress scenario.
+
+Example:
+
+Geopolitical
+ → GEOPOLITICAL_SHOCK
+
+Credit Event
+ → CREDIT_CRISIS
+
+Monetary Policy
+ → MACRO_RATE_SHOCK
+
+Commodity
+ → COMMODITY_SHOCK
+
+The stress simulation must:
+
+1. run
+2. persist to PostgreSQL
+3. reference triggering signal
+4. return result
+5. publish Redis event
+6. appear on frontend through WebSocket
+
+This must work not only in the demo endpoint.
+
+It must work from:
+
+POST /api/v1/analyze
+
+and:
+
+POST /api/v1/ingest
+
+============================================================
+17. STRESS ENGINE
+============================================================
+
+Keep the existing scenario framework.
+
+Scenarios:
+
+GEOPOLITICAL_SHOCK
+MACRO_RATE_SHOCK
+CREDIT_CRISIS
+LIQUIDITY_SHOCK
+COMMODITY_SHOCK
+
+Use position-specific properties.
+
+IMPORTANT:
+
+Government bond price impact should use actual duration:
+
+ΔP/P ≈ -Duration × ΔYield
+
+Corporate bond impact should use actual duration where available.
+
+Do not use:
+
+fixed duration = 5 years
+
+when the portfolio already contains actual duration.
+
+For every position return:
+
+before value
+shock
+after value
+absolute impact
+percentage impact
+
+Then:
+
+portfolio before
+portfolio after
+absolute loss/gain
+loss percentage
+
+============================================================
+18. DATABASE
+============================================================
+
+Keep PostgreSQL.
+
+Use SQLAlchemy.
+
+Use Alembic properly.
+
+Create:
+
+alembic/versions/001_initial_schema.py
+
+and any subsequent migrations.
+
+Do NOT rely exclusively on:
+
+Base.metadata.create_all()
+
+for production startup.
+
+Docker startup should run:
+
+alembic upgrade head
+
+and FAIL if migrations fail.
+
+Do not use:
+
+|| true
+
+to hide migration failures.
+
+============================================================
+19. REDIS + WEBSOCKET
+============================================================
+
+Keep:
+
+Redis Pub/Sub
+
+Architecture:
+
+Risk event
+ ↓
+Redis channel
+ ↓
+single application subscriber
+ ↓
+WebSocket connection manager
+ ↓
+React clients
+
+Avoid creating an unnecessary Redis subscription for every browser connection if possible.
+
+WebSocket messages should contain:
+
+event_id
+cluster_id
+event_class
+sentiment
+impact
+risk_level
+entities
+stress_triggered
+stress_result
+
+============================================================
+20. FRONTEND
+============================================================
+
+Keep React.
+
+Use a proper component architecture.
+
+Do NOT keep everything in App.tsx.
+
+Create reusable components:
+
+components/
+  Layout
+  Sidebar
+  Topbar
+  KpiCard
+  RiskBadge
+  EventCard
+  EventTable
+  RiskChart
+  SentimentChart
+  ImpactBreakdown
+  SourceBadge
+  LoadingState
+  ErrorState
+  EmptyState
+  StressResultCard
+  EventTimeline
+
+Use a centralized API layer.
+
+TanStack Query may be used properly for server state.
+
+Every API-driven page must have:
+
+loading
+success
+error
+empty
+retry
+
+states.
+
+Do not silently:
+
+.catch(() => {})
+
+============================================================
+21. REQUIRED FRONTEND PAGES
+============================================================
+
+Dashboard:
+
+- overall risk
+- event count
+- high-risk count
+- critical count
+- average sentiment
+- risk timeline
+- latest events
+- portfolio exposure
+- automatic stress alerts
+
+Live Feed:
+
+- real-time WebSocket events
+- connection status
+- new event animation
+- filtering
+
+Events:
+
+- pagination
+- search
+- event class filter
+- risk filter
+- sentiment filter
+- source filter
+
+Event Detail:
+
+- raw text
+- source
+- entities
+- sentiment
+- event class
+- impact
+- confidence
+- novelty
+- corroboration
+- source credibility
+- impact breakdown
+- related events
+- cluster timeline
+- stress simulation
+
+Entities:
+
+- search
+- risk
+- sentiment
+- event count
+
+Entity Detail:
+
+- timeline
+- related events
+- exposure
+- risk trend
+- sentiment trend
+
+Portfolio:
+
+- total value
+- asset class exposure
+- sector exposure
+- positions
+- affected entities
+
+Stress Testing:
+
+- scenario selection
+- run test
+- before/after value
+- loss
+- asset-level impact
+- history
+
+Analytics:
+
+- event distribution
+- sentiment distribution
+- risk distribution
+- source distribution
+- event lifecycle
+
+Settings:
+
+- model health
+- database health
+- Redis health
+- dataset status
+- model names
+- runtime information
+
+============================================================
+22. DISTINCTIVE FEATURE
+============================================================
+
+Add a major differentiating feature:
+
+EVENT RISK PROPAGATION.
+
+For every event show:
+
+Event
+ ↓
+Entities
+ ↓
+Portfolio exposure
+ ↓
+Risk drivers
+ ↓
+Stress scenario
+ ↓
+Portfolio impact
+
+Example:
+
+Geopolitical energy disruption
+
+Affected entities:
+- ExxonMobil
+- crude oil
+- energy sector
+
+Portfolio exposure:
+$16.5M
+
+Risk:
+8.4 / 10
+
+Triggered scenario:
+GEOPOLITICAL_SHOCK
+
+Simulated portfolio loss:
+$X
+
+This should be visually prominent.
+
+============================================================
+23. SECOND DISTINCTIVE FEATURE
+============================================================
+
+Implement:
+
+EVENT EVOLUTION TIMELINE
+
+Example:
+
+10:05 NEW
+10:45 DEVELOPING
+11:20 DEVELOPING
+12:05 ESCALATING
+13:10 HIGH RISK
+
+Show:
+
+- number of corroborating sources
+- sentiment change
+- impact change
+- novelty change
+- event frequency
+
+This demonstrates real-time intelligence rather than simple sentiment analysis.
+
+============================================================
+24. DATASET EVALUATION
+============================================================
+
+Rewrite:
+
+scripts/evaluate_models.py
+
+Do NOT use three hand-written examples as the main benchmark.
+
+Evaluate FinBERT using:
+
+Twitter Financial News Sentiment
+Financial PhraseBank
+
+Report:
+
+accuracy
+precision
+recall
+macro F1
+weighted F1
+confusion matrix
+
+Evaluate event classification using:
+
+Twitter Financial News Topic
+
+Create and document a mapping from dataset topics to canonical event taxonomy.
+
+Report:
+
+accuracy
+macro F1
+weighted F1
+per-class metrics
+
+Save:
+
+docs/model_evaluation.md
+
+with actual generated metrics and timestamp.
+
+Never fabricate metric values.
+
+============================================================
+25. TESTING
+============================================================
+
+Create comprehensive backend tests.
+
+Minimum:
+
+tests/
+  test_health.py
+  test_ingestion.py
+  test_sentiment.py
+  test_event_classifier.py
+  test_entities.py
+  test_embeddings.py
+  test_clustering.py
+  test_risk_fusion.py
+  test_stress_engine.py
+  test_api.py
+  test_websocket.py
+  test_database.py
+
+Frontend:
+
+tests/
+  dashboard.test.tsx
+  events.test.tsx
+  stress.test.tsx
+  websocket.test.tsx
+  api.test.ts
+
+Test:
+
+- success
+- error
+- empty state
+- invalid request
+- pagination
+- filtering
+- stress trigger
+- database persistence
+
+============================================================
+26. DOCKER
+============================================================
+
+Docker Compose must contain:
+
+postgres
+redis
+backend
+frontend
+
+Use health checks.
+
+Backend:
+
+- Python 3.12
+- reproducible dependencies
+- model cache volume
+- dataset volume
+
+Frontend:
+
+Use:
+
+npm ci
+
+NOT:
+
+npm install
+
+Build must pass from a completely clean environment.
+
+Run:
+
+docker compose build --no-cache
+
+then:
+
+docker compose up
+
+The stack must become healthy.
+
+============================================================
+27. MODEL STARTUP
+============================================================
+
+Do NOT block application startup unnecessarily while downloading massive models.
+
+Implement model readiness correctly.
+
+Possible architecture:
+
+Application starts
+ ↓
+API available
+ ↓
+model manager initializes
+ ↓
+models download/load
+ ↓
+health changes:
+
+loading → ready
+
+The frontend must display:
+
+Models loading...
+
+rather than falsely showing:
+
+Models ready
+
+============================================================
+28. API QUALITY
+============================================================
+
+All important endpoints should have proper Pydantic response models.
+
+Implement:
+
+- validation
+- HTTP status codes
+- clear errors
+- pagination
+- filtering
+- search
+
+Do not return arbitrary undocumented dictionaries everywhere.
+
+Update OpenAPI documentation accordingly.
+
+============================================================
+29. OBSERVABILITY
+============================================================
+
+Add structured logging for:
+
+- ingestion
+- model inference
+- processing latency
+- database operations
+- stress simulations
+- WebSocket connections
+- errors
+
+Expose useful health information:
+
+database
+redis
+finbert
+embedding model
+event classifier
+dataset availability
+
+============================================================
+30. SECURITY / CONFIGURATION
+============================================================
+
+Never hardcode production secrets.
+
+Use environment variables.
+
+Provide:
+
+.env.example
+
+Never commit:
+
+.env
+
+Keep CORS configurable.
+
+============================================================
+31. REMOVE MISLEADING CONTENT
+============================================================
+
+Remove or correct:
+
+- stale implementation audit
+- fake evaluation metrics
+- misleading source names
+- fake model status
+- fake fallback data
+- random embeddings
+- hardcoded market volatility
+- hardcoded portfolio exposure
+- fake frontend values
+
+Synthetic data must always be visibly labelled.
+
+============================================================
+32. README
+============================================================
+
+Rewrite README so it accurately describes what actually works.
+
+Include:
+
+1. Project overview
+2. Architecture
+3. Data sources
+4. Dataset links
+5. Models
+6. Tech stack
+7. Quick start
+8. Docker commands
+9. Dataset download commands
+10. API endpoints
+11. Evaluation
+12. Demo flow
+13. Architecture diagram
+14. Limitations
+15. Future work
+
+Do not claim features that are not verified.
+
+============================================================
+33. REQUIRED FINAL VERIFICATION
+============================================================
+
+You are NOT finished after writing code.
+
+You must actually run these checks.
+
+CHECK 1:
+
+python scripts/download_datasets.py
+
+Expected:
+
+3/3 datasets downloaded
+rows > 0
+
+If dependencies are missing, install them.
+
+Do not fake the output.
+
+CHECK 2:
+
+python -m compileall backend scripts
+
+Must pass.
+
+CHECK 3:
+
+pytest -q
+
+All tests must pass.
+
+CHECK 4:
+
+cd frontend
+npm ci
+npm run build
+
+Must pass.
+
+CHECK 5:
+
+docker compose build --no-cache
+
+Must pass.
+
+CHECK 6:
+
+docker compose up
+
+All services must become healthy.
+
+CHECK 7:
+
+GET /api/v1/health
+
+Must show actual status for:
+
+PostgreSQL
+Redis
+FinBERT
+Embeddings
+Event classifier
+
+CHECK 8:
+
+POST /api/v1/analyze
+
+with:
+
+"Escalating geopolitical tensions disrupt critical energy supply routes, raising concerns over global inflation and corporate input costs."
+
+Verify:
+
+sentiment
+event
+impact
+entities
+novelty
+corroboration
+cluster
+market context
+
+CHECK 9:
+
+POST /api/v1/ingest
+
+with:
+
+RSS source.
+
+Verify:
+
+real RSS article
+real URL
+real timestamp
+
+CHECK 10:
+
+POST /api/v1/ingest
+
+with dataset source.
+
+Verify:
+
+actual downloaded dataset records.
+
+CHECK 11:
+
+Trigger multiple semantically similar events.
+
+Verify:
+
+same cluster
+updated centroid
+lifecycle changes
+
+CHECK 12:
+
+Trigger high-impact geopolitical event.
+
+Verify:
+
+automatic stress test executes.
+
+Verify:
+
+RiskSignal persisted
+StressSimulation persisted
+Redis event published
+WebSocket receives event
+React UI updates
+
+CHECK 13:
+
+Restart backend.
+
+Verify:
+
+previous events still exist in PostgreSQL.
+
+CHECK 14:
+
+Open frontend in browser.
+
+Verify every navigation item works.
+
+CHECK 15:
+
+Click every important button.
+
+No dead buttons.
+
+============================================================
+34. FINAL ACCEPTANCE CRITERIA
+============================================================
+
+Do not tell me:
+
+"implemented"
+
+unless you have actually tested it.
+
+The project is complete only if:
+
+[ ] Real datasets download
+[ ] Dataset ingestion uses real data
+[ ] No silent fake dataset fallback
+[ ] FinBERT works
+[ ] No keyword NLP fallback
+[ ] Embeddings work
+[ ] No random embedding fallback
+[ ] Event classifier works
+[ ] Entity NER works
+[ ] Event clustering works
+[ ] Corroboration works
+[ ] Novelty works
+[ ] Market context is real/dynamic
+[ ] Portfolio exposure is real
+[ ] Impact score is explainable
+[ ] PostgreSQL persists data
+[ ] Alembic migrations work
+[ ] Redis works
+[ ] WebSocket works
+[ ] Automatic stress trigger works
+[ ] Stress engine works
+[ ] Frontend consumes real APIs
+[ ] Frontend has loading/error/empty states
+[ ] Frontend build passes
+[ ] Backend tests pass
+[ ] Frontend tests pass
+[ ] Docker build passes
+[ ] Docker runtime passes
+[ ] README is accurate
+[ ] Evaluation uses real datasets
+[ ] No fabricated metrics
+[ ] No misleading claims
+[ ] Demo can be completed in under 5 minutes
+
+============================================================
+35. FINAL RESPONSE FROM YOU
+============================================================
+
+When finished, do NOT simply say:
+
+"Done."
+
+Provide:
+
+1. Files changed
+2. Features fixed
+3. Tests executed
+4. Test results
+5. Dataset row counts
+6. Model status
+7. Docker status
+8. API verification results
+9. Stress trigger verification
+10. Remaining limitations
+
+If ANY acceptance criterion fails, explicitly state it.
+
+Never hide a failure.
+
+The goal is a genuinely functioning, reproducible, production-style hackathon prototype — not a visually convincing mock.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-05T19:12:40+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\README.md (LANGUAGE_MARKDOWN)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\backend\app\api\routes\events.py (LANGUAGE_PYTHON)
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\backend\app\services\risk\impact_scorer.py (LANGUAGE_PYTHON)
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\backend\app\services\nlp\event_classifier.py (LANGUAGE_PYTHON)
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\frontend\vite.config.ts (LANGUAGE_TYPESCRIPT)
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\.env.example (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Claude Opus 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

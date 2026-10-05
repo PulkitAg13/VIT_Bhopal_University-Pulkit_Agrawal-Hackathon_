@@ -136,8 +136,8 @@ class StressEngine:
             issuer = position.get("issuer", "")
             ticker = position.get("ticker", "")
 
-            # Calculate shock for this position based on asset class
-            shock = self._compute_position_shock(asset_class, cfg)
+            # Calculate shock for this position based on asset class and characteristics
+            shock = self._compute_position_shock(asset_class, cfg, position)
 
             # Apply shock: negative shock = loss, positive shock on commodity = gain for commodity holders
             # but positive spread shock = loss for bond holders
@@ -149,6 +149,7 @@ class StressEngine:
                 "asset_class": asset_class,
                 "issuer": issuer,
                 "ticker": ticker,
+                "duration": position.get("duration"),
                 "before_value": round(value, 2),
                 "after_value": round(impacted_value, 2),
                 "impact": round(impact_amount, 2),
@@ -195,12 +196,17 @@ class StressEngine:
 
         return result
 
-    def _compute_position_shock(self, asset_class: str, cfg: Dict[str, Any]) -> float:
+    def _compute_position_shock(
+        self, asset_class: str, cfg: Dict[str, Any], position: Optional[Dict[str, Any]] = None
+    ) -> float:
         """
-        Compute the net shock for a position based on asset class and scenario.
+        Compute the net shock for a position based on asset class, actual duration, and scenario.
 
         Returns a decimal shock (e.g., -0.10 for -10% loss, +0.05 for +5% gain).
         """
+        pos = position or {}
+        pos_duration = pos.get("duration")
+
         equity_shock = float(cfg.get("equity_shock", 0.0))
         bond_price_shock = float(cfg.get("bond_price_shock", 0.0))
         corporate_bond_shock = float(cfg.get("corporate_bond_shock", 0.0))
@@ -217,15 +223,17 @@ class StressEngine:
             return equity_shock - liquidity_haircut * 0.3
 
         elif "corporate bond" in ac:
-            # Corporate bonds: direct shock + spread impact + liquidity
-            spread_impact = -credit_spread_shock * 4.0  # ~4yr duration approximation
+            # Corporate bonds: direct shock + spread impact using actual position duration
+            effective_duration = float(pos_duration) if pos_duration is not None and pos_duration > 0 else 4.0
+            spread_impact = -credit_spread_shock * effective_duration
             direct = corporate_bond_shock if corporate_bond_shock else 0.0
             return direct + spread_impact - liquidity_haircut * 0.5
 
         elif "government bond" in ac:
-            # Government bonds: rate impact on price (inverse)
-            # Approximate: duration ~5yr, price change ≈ -duration * rate change
-            rate_impact = -interest_rate_shock * 5.0
+            # Government bonds: rate impact on price using actual position duration
+            # Price change ≈ -duration * rate change
+            effective_duration = float(pos_duration) if pos_duration is not None and pos_duration > 0 else 5.0
+            rate_impact = -interest_rate_shock * effective_duration
             direct = bond_price_shock if bond_price_shock else 0.0
             return direct + rate_impact
 

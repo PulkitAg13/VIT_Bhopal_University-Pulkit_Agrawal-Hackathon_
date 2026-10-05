@@ -1,0 +1,147 @@
+<USER_REQUEST>
+You are working on an existing hackathon project called:
+
+FINRISK INTELLIGENCE
+
+Do NOT rebuild the project blindly from scratch.
+
+I am giving you an existing repository that has already been partially implemented.
+
+Your task is to perform a COMPLETE ENGINEERING REMEDIATION of the existing codebase.
+
+The goal is NOT to make the project merely look complete.
+
+The goal is:
+
+EVERY FEATURE MUST ACTUALLY WORK END-TO-END.
+
+Do not claim a feature is implemented merely because:
+- a dependency exists in requirements.txt
+- a Docker container exists
+- a route exists
+- a model name appears in the README
+- a UI card exists
+
+You must verify actual runtime behavior.
+
+============================================================
+1. PROJECT REQUIREMENTS
+============================================================
+
+The mandatory hackathon requirements are:
+
+CORE AI/NLP RISK ENGINE:
+
+1. Ingest text from at least two sources:
+   - live financial news
+   - social/financial dataset representing social media/news posts
+
+2. For every text/event produce:
+   - Sentiment Score: -1 to +1
+   - Event Classification
+   - Impact Score: 1-10
+
+3. Expose structured output through FastAPI.
+
+DOWNSTREAM MODULE:
+
+Use Module B:
+Strategic Event-Driven Portfolio Stress Testing.
+
+When:
+- event is high impact
+- impact score >= 7
+- event belongs to a stress-triggering category
+
+the system must automatically trigger the appropriate stress scenario.
+
+The complete flow must work:
+
+SOURCE
+  ↓
+INGESTION
+  ↓
+NLP
+  ↓
+ENTITY RESOLUTION
+  ↓
+EVENT CLASSIFICATION
+  ↓
+EMBEDDING
+  ↓
+EVENT CLUSTERING
+  ↓
+CORROBORATION
+  ↓
+NOVELTY
+  ↓
+MARKET CONTEXT
+  ↓
+PORTFOLIO EXPOSURE
+  ↓
+IMPACT SCORE
+  ↓
+RISK SIGNAL
+  ↓
+AUTOMATIC STRESS TRIGGER
+  ↓
+STRESS ENGINE
+  ↓
+POSTGRESQL
+  ↓
+REDIS PUB/SUB
+  ↓
+WEBSOCKET
+  ↓
+REACT DASHBOARD
+
+============================================================
+2. ABSOLUTE RULE: NO FAKE FUNCTIONALITY
+===========
+<truncated 24276 bytes>
+ms
+[ ] Demo can be completed in under 5 minutes
+
+============================================================
+35. FINAL RESPONSE FROM YOU
+============================================================
+
+When finished, do NOT simply say:
+
+"Done."
+
+Provide:
+
+1. Files changed
+2. Features fixed
+3. Tests executed
+4. Test results
+5. Dataset row counts
+6. Model status
+7. Docker status
+8. API verification results
+9. Stress trigger verification
+10. Remaining limitations
+
+If ANY acceptance criterion fails, explicitly state it.
+
+Never hide a failure.
+
+The goal is a genuinely functioning, reproducible, production-style hackathon prototype — not a visually convincing mock.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-05T19:12:40+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\README.md (LANGUAGE_MARKDOWN)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\backend\app\api\routes\events.py (LANGUAGE_PYTHON)
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\backend\app\services\risk\impact_scorer.py (LANGUAGE_PYTHON)
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\backend\app\services\nlp\event_classifier.py (LANGUAGE_PYTHON)
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\frontend\vite.config.ts (LANGUAGE_TYPESCRIPT)
+- c:\Users\HP PAVILION\Desktop\Github Things\VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_\.env.example (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Claude Opus 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

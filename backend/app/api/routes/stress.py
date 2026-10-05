@@ -20,6 +20,7 @@ def list_stress_scenarios() -> dict:
 
 
 @router.post("/stress-test")
+@router.post("/stress-test/run")
 def run_stress_test(payload: StressTestRequest, db: Session = Depends(get_db)) -> dict:
     portfolio = portfolio_service.load_portfolio(db)
     result = stress_engine.stress_test(

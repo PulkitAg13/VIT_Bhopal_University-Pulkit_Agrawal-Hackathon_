@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-10-05T14:12:10.454888+00:00",
+  "datasets": [
+    {
+      "name": "twitter_topic",
+      "hf_path": "zeroshot/twitter-financial-news-topic",
+      "url": "https://huggingface.co/datasets/zeroshot/twitter-financial-news-topic",
+      "license": "MIT",
+      "downloaded_at": "2026-10-05T14:12:29.615086+00:00",
+      "rows": 21107,
+      "splits": {
+        "train": 16990,
+        "validation": 4117
+      },
+      "columns": [
+        "label",
+        "text"
+      ],
+      "text_column": "text",
+      "label_column": "label",
+      "checksums": {
+        "train": "f4920803f8bb822219071f44ee79871c5e2621d51708f365ac5bd5e30261d3e1",
+        "validation": "b4d9b56918f9ca86ad11035c5d9ae750da3e116930b3c17919f609e97b3edde5"
+      },
+      "status": "downloaded",
+      "schema_validated": true
+    },
+    {
+      "name": "twitter_sentiment",
+      "hf_path": "zeroshot/twitter-financial-news-sentiment",
+      "url": "https://huggingface.co/datasets/zeroshot/twitter-financial-news-sentiment",
+      "license": "MIT",
+      "downloaded_at": "2026-10-05T14:12:37.634382+00:00",
+      "rows": 11931,
+      "splits": {
+        "train": 9543,
+        "validation": 2388
+      },
+      "columns": [
+        "label",
+        "text"
+      ],
+      "text_column": "text",
+      "label_column": "label",
+      "checksums": {
+        "train": "da647cb1cc3ee514e91fc81287feb28ee0e755dfe651f2f61718c1fc08a87a6e",
+        "validation": "656706ad94e6c4bbede9dddb2a7878658675eaade8eeb6e6397504418ae97b62"
+      },
+      "status": "downloaded",
+      "schema_validated": true
+    },
+    {
+      "name": "financial_phrasebank",
+      "hf_path": "takala/financial_phrasebank",
+      "url": "https://huggingface.co/datasets/takala/financial_phrasebank",
+      "license": "CC BY-SA 4.0",
+      "downloaded_at": "2026-10-05T14:12:37.955094+00:00",
+      "rows": 2264,
+      "splits": {
+        "train": 2264
+      },
+      "columns": [
+        "label",
+        "label_text",
+        "sentence"
+      ],
+      "text_column": "sentence",
+      "label_column": "label",
+      "checksums": {
+        "train": "6d0131937ed4216c31f045c37c689f3480cc4777c3458422126d18d61d91c630"
+      },
+      "status": "downloaded",
+      "schema_validated": true
+    }
+  ]
+}
