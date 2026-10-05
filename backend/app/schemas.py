@@ -34,6 +34,8 @@ class SourceInfo(BaseModel):
     type: str
     name: str
     url: Optional[str] = None
+    provider: Optional[str] = None
+    domain: Optional[str] = None
 
 
 class SentimentResult(BaseModel):
@@ -63,7 +65,11 @@ class ImpactResult(BaseModel):
 class CorroborationResult(BaseModel):
     score: float
     independent_sources: int = 0
-    similar_events: int = 0
+    independent_provider_count: int = 0
+    independent_domains: List[str] = []
+    similar_event_count: int = 0
+    source_type_diversity: int = 1
+    corroboration_score: float = 0.0
 
 
 class EntityResult(BaseModel):
@@ -163,6 +169,13 @@ class StressResultResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     service: str
+    database: str
+    redis: str
+    models: Dict[str, str] = {}
+
+
+class ReadinessResponse(BaseModel):
+    status: str
     database: str
     redis: str
     models: Dict[str, str] = {}
