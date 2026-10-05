@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any, Optional
 
 import redis
@@ -16,6 +17,8 @@ RISK_EVENTS_CHANNEL = "risk_events"
 
 def get_redis() -> Optional[redis.Redis]:
     global _redis_client
+    if os.getenv("TESTING") == "1":
+        return None
     if _redis_client is not None:
         return _redis_client
     try:

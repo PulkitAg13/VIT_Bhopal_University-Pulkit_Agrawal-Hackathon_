@@ -1,3 +1,6 @@
+"""API integration tests — uses conftest fixtures for proper DB isolation."""
+
+
 def test_api_analyze_valid(client):
     response = client.post("/api/v1/analyze", json={
         "text": "Federal Reserve unexpected rate hike dampens equity valuation.",
@@ -22,16 +25,18 @@ def test_api_analyze_empty_text_error(client):
 def test_api_events_list_and_filter(client):
     # Ingest one event first
     client.post("/api/v1/analyze", json={
-        "text": "Corporate earnings exceed expectations significantly.",
+        "text": "Corporate earnings exceed expectations significantly across all sectors.",
         "source_name": "CNBC",
         "source_type": "rss",
     })
 
-    # Test list
-    response = client.get("/api/v1/events?limit=10")
+    # Test list — returns paginated response with items, count, page, page_size
+    response = client.get("/api/v1/events?page=1&page_size=10")
     assert response.status_code == 200
-    events = response.json()
-    assert isinstance(events, list)
+    data = response.json()
+    assert "items" in data
+    assert "count" in data
+    assert isinstance(data["items"], list)
 
     # Test filtering by risk level
     response_filt = client.get("/api/v1/events?risk_level=HIGH")

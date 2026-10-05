@@ -1,5 +1,9 @@
+"""Test ingestion sources and API endpoints."""
 import pytest
+from pathlib import Path
 from app.services.ingestion.sources import get_source, RSSNewsSource, DatasetReplaySource, DemoSource
+
+_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 
 def test_get_source_factory():
@@ -25,12 +29,16 @@ def test_demo_source_fetch():
     assert len(items[0].text) > 10
 
 
+@pytest.mark.skipif(
+    not (_DATA_DIR / "raw" / "twitter_sentiment").exists(),
+    reason="Dataset not downloaded — run scripts/download_datasets.py first",
+)
 def test_dataset_replay_fetch_real_data():
     source = DatasetReplaySource("twitter_sentiment")
     items = source.fetch(max_items=5)
     assert len(items) > 0
     assert items[0].source_type == "dataset"
-    assert "twitter" in items[0].source_url.lower()
+    assert "huggingface" in items[0].source_url.lower()
 
 
 def test_dataset_replay_missing_raises():

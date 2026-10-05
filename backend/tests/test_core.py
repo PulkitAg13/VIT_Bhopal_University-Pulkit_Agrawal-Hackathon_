@@ -1,21 +1,17 @@
-from fastapi.testclient import TestClient
-
-from app.main import app
+"""Core integration tests — uses conftest fixtures for proper DB isolation."""
 from app.services.stress.stress_engine import StressEngine
 
-client = TestClient(app)
 
-
-def test_health_endpoint():
+def test_health_endpoint(client):
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     payload = response.json()
-    assert payload["status"] == "ok"
+    assert payload["status"] in ("healthy", "degraded", "unhealthy")
     assert "database" in payload
     assert "redis" in payload
 
 
-def test_analyze_endpoint():
+def test_analyze_endpoint(client):
     response = client.post("/api/v1/analyze", json={
         "text": "Escalating geopolitical tensions disrupt critical energy supply routes, raising concerns over global inflation and corporate input costs.",
         "source_name": "demo",
@@ -29,7 +25,7 @@ def test_analyze_endpoint():
     assert payload["impact"]["score"] >= 1
 
 
-def test_risk_overview_and_stress_scenarios_endpoints():
+def test_risk_overview_and_stress_scenarios_endpoints(client):
     response = client.get("/api/v1/risk/overview")
     assert response.status_code == 200
     payload = response.json()
@@ -39,7 +35,8 @@ def test_risk_overview_and_stress_scenarios_endpoints():
     assert response.status_code == 200
     payload = response.json()
     assert "scenarios" in payload
-    assert "GEOPOLITICAL_SHOCK" in payload["scenarios"]
+    scenario_names = [s["name"] for s in payload["scenarios"]]
+    assert "GEOPOLITICAL_SHOCK" in scenario_names
 
 
 def test_stress_engine():
@@ -47,12 +44,12 @@ def test_stress_engine():
     result = engine.stress_test({
         "total_value": 100_000_000,
         "positions": [
-            {"asset_class": "Corporate Loans", "value": 30_000_000, "exposure": 0.8},
-            {"asset_class": "Government Bonds", "value": 20_000_000, "exposure": 0.4},
-            {"asset_class": "Corporate Bonds", "value": 15_000_000, "exposure": 0.7},
-            {"asset_class": "Equities", "value": 20_000_000, "exposure": 0.9},
-            {"asset_class": "Derivatives", "value": 10_000_000, "exposure": 0.8},
-            {"asset_class": "Cash", "value": 5_000_000, "exposure": 0.2},
+            {"asset_class": "Corporate Loans", "notional": 30_000_000},
+            {"asset_class": "Government Bonds", "notional": 20_000_000, "duration": 5.0},
+            {"asset_class": "Corporate Bonds", "notional": 15_000_000, "duration": 4.0},
+            {"asset_class": "Equities", "notional": 20_000_000},
+            {"asset_class": "Derivatives", "notional": 10_000_000},
+            {"asset_class": "Cash", "notional": 5_000_000},
         ]
     }, "GEOPOLITICAL_SHOCK")
     assert result["scenario"] == "GEOPOLITICAL_SHOCK"

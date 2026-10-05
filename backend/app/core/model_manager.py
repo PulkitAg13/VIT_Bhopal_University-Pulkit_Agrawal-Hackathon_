@@ -17,10 +17,16 @@ CRITICAL RULES:
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# Enforce pure PyTorch execution to eliminate massive TF startup delays
+os.environ["USE_TF"] = "0"
+os.environ["USE_TORCH"] = "1"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 import numpy as np
 import yaml
@@ -146,6 +152,7 @@ class ModelManager:
                 self._finbert_pipeline = hf_pipeline(
                     "sentiment-analysis",
                     model="ProsusAI/finbert",
+                    framework="pt",
                     device=0 if self.device == "cuda" else -1,
                     top_k=None,
                 )
@@ -284,13 +291,22 @@ class ModelManager:
                 return
             self._classifier_status = LOADING
             t0 = time.time()
-            from transformers import pipeline as hf_pipeline
-            # Try facebook/bart-large-mnli; fallback to distilbart if resource-constrained
-            for model_name in ["facebook/bart-large-mnli", "valhalla/distilbart-mnli-12-3"]:
+            from transformers import pipeline as hf_pipeline, AutoModelForSequenceClassification, AutoTokenizer
+            # Try valhalla/distilbart-mnli-12-3 first (resource-efficient, fits safely in 4GB RAM)
+            for model_name in ["valhalla/distilbart-mnli-12-3", "facebook/bart-large-mnli"]:
                 try:
+                    try:
+                        m = AutoModelForSequenceClassification.from_pretrained(model_name, local_files_only=True)
+                        t = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+                    except Exception:
+                        m = AutoModelForSequenceClassification.from_pretrained(model_name)
+                        t = AutoTokenizer.from_pretrained(model_name)
+
                     self._zeroshot_pipeline = hf_pipeline(
                         "zero-shot-classification",
-                        model=model_name,
+                        model=m,
+                        tokenizer=t,
+                        framework="pt",
                         device=0 if self.device == "cuda" else -1,
                     )
                     self._classifier_model_name = model_name
@@ -391,6 +407,7 @@ class ModelManager:
                 self._ner_pipeline = hf_pipeline(
                     "ner",
                     model="dslim/bert-base-NER",
+                    framework="pt",
                     aggregation_strategy="simple",
                     device=0 if self.device == "cuda" else -1,
                 )

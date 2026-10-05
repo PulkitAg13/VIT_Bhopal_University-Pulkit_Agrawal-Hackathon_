@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -27,39 +28,46 @@ async def lifespan(app: FastAPI):
     log = logging.getLogger("finrisk.startup")
     log.info("FinRisk Intelligence starting up...")
 
-    # Seed initial portfolio data if table exists (schema is created via Alembic)
-    try:
-        from app.core.database import SessionLocal
-        from app.services.portfolio.portfolio_service import PortfolioService
-        db = SessionLocal()
-        PortfolioService().seed_portfolio(db)
-        db.close()
-        log.info("Portfolio verified/seeded")
-    except Exception as exc:
-        log.warning("Portfolio seeding skipped: %s", exc)
+    is_testing = os.getenv("TESTING") == "1" or settings.app_env == "test"
+    subscriber_task = None
 
-    # Start single Redis subscriber task for all WebSocket connections
-    subscriber_task = asyncio.create_task(start_redis_subscriber_task(manager))
-    log.info("Single Redis subscriber task started")
+    if not is_testing:
+        # Seed initial portfolio data if table exists (schema is created via Alembic)
+        try:
+            from app.core.database import SessionLocal
+            from app.services.portfolio.portfolio_service import PortfolioService
+            db = SessionLocal()
+            PortfolioService().seed_portfolio(db)
+            db.close()
+            log.info("Portfolio verified/seeded")
+        except Exception as exc:
+            log.warning("Portfolio seeding skipped: %s", exc)
 
-    # Pre-load models asynchronously in background thread safely
-    try:
-        mm = get_model_manager()
-        asyncio.create_task(asyncio.to_thread(mm.load_all))
-        log.info("Model pre-loading scheduled in background thread")
-    except Exception as exc:
-        log.warning("Model background scheduling failed: %s", exc)
+        # Start single Redis subscriber task for all WebSocket connections
+        subscriber_task = asyncio.create_task(start_redis_subscriber_task(manager))
+        log.info("Single Redis subscriber task started")
+
+        # Pre-load models asynchronously in background thread safely (skip during testing)
+        try:
+            mm = get_model_manager()
+            asyncio.create_task(asyncio.to_thread(mm.load_all))
+            log.info("Model pre-loading scheduled in background thread")
+        except Exception as exc:
+            log.warning("Model background scheduling failed: %s", exc)
+    else:
+        log.info("Test environment detected — skipping background tasks, external seeding, and model preloading")
 
     log.info("FinRisk Intelligence ready")
     yield
 
     # Shutdown
     log.info("FinRisk Intelligence shutting down...")
-    subscriber_task.cancel()
-    try:
-        await subscriber_task
-    except asyncio.CancelledError:
-        pass
+    if subscriber_task is not None:
+        subscriber_task.cancel()
+        try:
+            await subscriber_task
+        except asyncio.CancelledError:
+            pass
     log.info("FinRisk Intelligence shutdown complete")
 
 
