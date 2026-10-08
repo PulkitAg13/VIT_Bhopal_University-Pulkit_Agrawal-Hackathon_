@@ -5,12 +5,22 @@ import * as api from '../api/client';
 export default function SettingsPage() {
   const [health, setHealth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [analyzeText, setAnalyzeText] = useState('');
   const [analyzeResult, setAnalyzeResult] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
+  const loadHealth = () => {
+    setLoading(true);
+    setError('');
+    api.fetchHealth()
+      .then(setHealth)
+      .catch((err) => setError(err.message || 'Unable to reach backend'))
+      .finally(() => setLoading(false));
+  };
+
   useEffect(() => {
-    api.fetchHealth().then(setHealth).catch(() => {}).finally(() => setLoading(false));
+    loadHealth();
   }, []);
 
   const handleAnalyze = async () => {
@@ -95,7 +105,14 @@ export default function SettingsPage() {
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div className="card-header"><span className="card-title">System Status</span></div>
         <div className="card-body">
-          {loading ? <div className="loading-state"><div className="spinner" /></div> : health ? (
+          {loading ? (
+            <div className="loading-state"><div className="spinner" /></div>
+          ) : error || !health ? (
+            <div className="error-state">
+              <p>{error || 'Unable to reach backend'}</p>
+              <button className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }} onClick={loadHealth}>Retry</button>
+            </div>
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {[
                 { label: 'Service', value: health.service || 'FinRisk Intelligence' },
@@ -116,7 +133,7 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
-          ) : <p style={{ color: 'var(--text-tertiary)' }}>Unable to reach backend</p>}
+          )}
         </div>
       </div>
 

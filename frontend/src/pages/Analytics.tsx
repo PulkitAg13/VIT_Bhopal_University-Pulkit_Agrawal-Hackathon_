@@ -8,16 +8,28 @@ const COLORS = ['#2563eb', '#4f46e5', '#0891b2', '#059669', '#d97706', '#dc2626'
 export default function AnalyticsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const loadAnalytics = () => {
+    setLoading(true);
+    setError('');
     api.fetchAnalytics()
       .then(setData)
-      .catch(() => {})
+      .catch((err) => setError(err.message || 'Unable to load analytics'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadAnalytics();
   }, []);
 
   if (loading) return <div className="loading-state"><div className="spinner" /></div>;
-  if (!data) return <div className="error-state"><p>Unable to load analytics</p></div>;
+  if (error || !data) return (
+    <div className="error-state">
+      <p>{error || 'Unable to load analytics'}</p>
+      <button className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }} onClick={loadAnalytics}>Retry</button>
+    </div>
+  );
 
   const eventDist = Object.entries(data.event_distribution || {}).map(([k, v]) => ({ name: k, value: v as number }));
   const sentDist = Object.entries(data.sentiment_distribution || {}).map(([k, v]) => ({ name: k, value: v as number }));

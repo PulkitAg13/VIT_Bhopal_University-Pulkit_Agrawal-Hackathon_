@@ -27,6 +27,7 @@ class IngestedItem:
         source_type: str,
         source_url: Optional[str] = None,
         published_at: Optional[datetime] = None,
+        retrieved_at: Optional[datetime] = None,
         ticker: Optional[str] = None,
     ):
         self.text = text
@@ -34,6 +35,7 @@ class IngestedItem:
         self.source_type = source_type
         self.source_url = source_url
         self.published_at = published_at
+        self.retrieved_at = retrieved_at or datetime.now(timezone.utc)
         self.ticker = ticker
 
 

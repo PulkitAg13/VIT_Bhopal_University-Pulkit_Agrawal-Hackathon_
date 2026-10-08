@@ -8,26 +8,36 @@ export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [riskFilter, setRiskFilter] = useState('');
+  const [sentimentFilter, setSentimentFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
 
   const loadEvents = async () => {
     setLoading(true);
+    setError('');
     try {
       const params: api.EventsParams = { page, page_size: 25 };
       if (search) params.search = search;
       if (classFilter) params.event_class = classFilter;
       if (riskFilter) params.risk_level = riskFilter;
+      if (sentimentFilter) params.sentiment = sentimentFilter;
+      if (sourceFilter) params.source = sourceFilter;
       const res = await api.fetchEvents(params);
       setEvents(res.items || []);
       setTotal(res.count || 0);
-    } catch { setEvents([]); }
-    finally { setLoading(false); }
+    } catch (err: any) {
+      setEvents([]);
+      setError(err.message || 'Failed to load events');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { loadEvents(); }, [page, classFilter, riskFilter]);
+  useEffect(() => { loadEvents(); }, [page, classFilter, riskFilter, sentimentFilter, sourceFilter]);
 
   return (
     <>
@@ -55,11 +65,29 @@ export default function EventsPage() {
           <option value="MODERATE">Moderate</option>
           <option value="LOW">Low</option>
         </select>
+        <select className="select" value={sentimentFilter} onChange={e => { setSentimentFilter(e.target.value); setPage(1); }}>
+          <option value="">All Sentiments</option>
+          <option value="positive">Positive</option>
+          <option value="neutral">Neutral</option>
+          <option value="negative">Negative</option>
+        </select>
+        <input
+          className="input"
+          style={{ width: 140 }}
+          placeholder="Filter source..."
+          value={sourceFilter}
+          onChange={e => { setSourceFilter(e.target.value); setPage(1); }}
+        />
         <button className="btn btn-secondary btn-sm" onClick={loadEvents}>Search</button>
       </div>
 
       {loading ? (
         <div className="loading-state"><div className="spinner" /></div>
+      ) : error ? (
+        <div className="error-state">
+          <p>{error}</p>
+          <button className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }} onClick={loadEvents}>Retry</button>
+        </div>
       ) : events.length > 0 ? (
         <>
           <div className="card">

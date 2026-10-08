@@ -1,20 +1,21 @@
-"""Entity extraction using transformer NER + financial entity resolution & enrichment.
+"""Entity extraction using mandatory transformer NER + financial entity resolution & enrichment.
 
 Architecture:
     Raw text
      ↓
-    Transformer NER (dslim/bert-base-NER) → ORG / LOC / MISC / PER
+    Transformer NER (dslim/bert-base-NER) → ORG / LOC / MISC / PER (Mandatory)
      ↓
     Financial entity resolver (config/entities.yaml + canonical mapping)
      ↓
-    Dictionary/alias/regex enrichment (clearly labelled extraction methods)
+    Dictionary/alias/regex enrichment (secondary layers on successful NER)
      ↓
     Canonical financial entities
 
 CRITICAL:
+- Transformer NER (dslim/bert-base-NER) is mandatory for entity extraction.
+  If unavailable, ModelUnavailableError is raised.
+- Dictionary and regex extraction act strictly as enrichment after successful NER.
 - No fabricated "General Market" fallback entity. If none found, returns [].
-- If transformer NER is unavailable, it is marked as unavailable and secondary
-  dictionary/pattern layers are labelled accurately (not claimed as NER).
 """
 from __future__ import annotations
 
@@ -185,14 +186,14 @@ def extract_entities(text: str) -> List[Dict[str, Any]]:
     """Extract and resolve entities from financial text.
 
     Architecture:
-    1. Transformer NER model (bert-base-NER) as primary extraction stage.
+    1. Transformer NER model (bert-base-NER) as mandatory primary extraction stage.
+       Raises ModelUnavailableError if NER model is unavailable.
     2. Financial entity resolver mapping NER tokens to canonical entities.
     3. Dictionary / alias / regex enrichment as clearly-labelled secondary layers.
 
     CRITICAL:
     - Never fabricates 'General Market'. Returns [] if no entities found.
-    - If transformer NER model is unavailable, secondary methods are explicitly
-      labelled as 'dictionary' or 'regex', and never claimed as transformer NER.
+    - Dictionary/pattern layers run strictly as enrichment after successful NER.
     """
     found: List[Dict[str, Any]] = []
     seen_names: set[str] = set()

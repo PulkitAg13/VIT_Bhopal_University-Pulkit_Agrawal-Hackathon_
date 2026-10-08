@@ -21,13 +21,15 @@ export default function DashboardPage() {
   const [demoResult, setDemoResult] = useState<any>(null);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
       const [m, t, e, p, h] = await Promise.all([
-        api.fetchRiskOverview().catch(() => null),
-        api.fetchRiskTimeline().catch(() => []),
-        api.fetchEvents({ page_size: 5 }).catch(() => ({ items: [] })),
-        api.fetchPortfolioExposure().catch(() => null),
-        api.fetchHealth().catch(() => null),
+        api.fetchRiskOverview(),
+        api.fetchRiskTimeline(),
+        api.fetchEvents({ page_size: 5 }),
+        api.fetchPortfolioExposure(),
+        api.fetchHealth(),
       ]);
       setMetrics(m);
       setTimeline(t);
@@ -70,7 +72,7 @@ export default function DashboardPage() {
   };
 
   if (loading) return <div className="loading-state"><div className="spinner" /><p>Loading dashboard...</p></div>;
-  if (error && !metrics) return (
+  if (error) return (
     <div className="error-state">
       <AlertTriangle size={48} />
       <p>{error}</p>

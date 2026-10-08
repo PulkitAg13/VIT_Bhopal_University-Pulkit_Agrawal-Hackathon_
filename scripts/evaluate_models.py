@@ -143,8 +143,66 @@ def compute_classification_metrics(
     }
 
 
+def stratified_sample(
+    data: List[Dict[str, Any]],
+    label_fn: Any,
+    target_size: int,
+) -> List[Dict[str, Any]]:
+    """Deterministic stratified sampling ensuring each represented class gets meaningful support.
+
+    1. Filters valid items where label_fn(item) is not None.
+    2. Groups items by class preserving dataset order.
+    3. Calculates allocation per class so every represented class gets meaningful support.
+    4. Deterministically draws items from each class bucket.
+    """
+    classes: Dict[Any, List[Dict[str, Any]]] = defaultdict(list)
+    for item in data:
+        lbl = label_fn(item)
+        if lbl is not None:
+            classes[lbl].append(item)
+
+    if not classes:
+        return []
+
+    num_classes = len(classes)
+    total_available = sum(len(items) for items in classes.values())
+    if total_available <= target_size:
+        sampled = []
+        for lbl in sorted(classes.keys(), key=lambda k: str(k)):
+            sampled.extend(classes[lbl])
+        return sampled
+
+    # Assign base equal allocation per class, capped by class size
+    base_per_class = max(1, target_size // num_classes)
+    allocated: Dict[Any, int] = {}
+    for lbl, items in classes.items():
+        allocated[lbl] = min(len(items), base_per_class)
+
+    # Distribute remaining slots deterministically to classes with remaining items
+    remaining = target_size - sum(allocated.values())
+    sorted_labels = sorted(classes.keys(), key=lambda l: (len(classes[l]) - allocated[l], str(l)), reverse=True)
+    while remaining > 0:
+        allocated_any = False
+        for lbl in sorted_labels:
+            if remaining <= 0:
+                break
+            if allocated[lbl] < len(classes[lbl]):
+                allocated[lbl] += 1
+                remaining -= 1
+                allocated_any = True
+        if not allocated_any:
+            break
+
+    # Collect sampled items deterministically sorted by class label
+    sampled = []
+    for lbl in sorted(classes.keys(), key=lambda k: str(k)):
+        sampled.extend(classes[lbl][:allocated[lbl]])
+
+    return sampled
+
+
 def evaluate_sentiment(mm: Any, sample_size: int = 100) -> Dict[str, Any]:
-    """Evaluate FinBERT on Twitter Sentiment and Financial PhraseBank."""
+    """Evaluate FinBERT on Twitter Sentiment and Financial PhraseBank using deterministic stratified sampling."""
     results = {}
     labels = ["negative", "neutral", "positive"]
 
@@ -156,9 +214,15 @@ def evaluate_sentiment(mm: Any, sample_size: int = 100) -> Dict[str, Any]:
     if ts_file.exists():
         with open(ts_file, "r", encoding="utf-8") as f:
             data = json.load(f).get("data", [])
-        
-        # Take a balanced/stratified sample up to sample_size
-        sampled = data[:sample_size]
+
+        def _get_ts_label(item: Dict[str, Any]) -> Optional[str]:
+            text = item.get("text", "")
+            raw = item.get("label")
+            if not text.strip() or raw not in TWITTER_SENTIMENT_MAP:
+                return None
+            return TWITTER_SENTIMENT_MAP[raw]
+
+        sampled = stratified_sample(data, _get_ts_label, sample_size)
         y_true = []
         y_pred = []
         t0 = time.time()
@@ -186,7 +250,14 @@ def evaluate_sentiment(mm: Any, sample_size: int = 100) -> Dict[str, Any]:
         with open(fp_file, "r", encoding="utf-8") as f:
             data = json.load(f).get("data", [])
 
-        sampled = data[:sample_size]
+        def _get_fp_label(item: Dict[str, Any]) -> Optional[str]:
+            sentence = item.get("sentence", "")
+            raw = item.get("label")
+            if not sentence.strip() or raw not in PHRASEBANK_SENTIMENT_MAP:
+                return None
+            return PHRASEBANK_SENTIMENT_MAP[raw]
+
+        sampled = stratified_sample(data, _get_fp_label, sample_size)
         y_true = []
         y_pred = []
         t0 = time.time()
@@ -212,7 +283,7 @@ def evaluate_sentiment(mm: Any, sample_size: int = 100) -> Dict[str, Any]:
 
 
 def evaluate_event_classification(mm: Any, sample_size: int = 50) -> Dict[str, Any]:
-    """Evaluate event classification on Twitter Financial News Topic."""
+    """Evaluate event classification on Twitter Financial News Topic using deterministic stratified sampling."""
     tt_file = DATA_DIR / "twitter_topic" / "validation.json"
     if not tt_file.exists():
         tt_file = DATA_DIR / "twitter_topic" / "train.json"
@@ -224,13 +295,17 @@ def evaluate_event_classification(mm: Any, sample_size: int = 50) -> Dict[str, A
     with open(tt_file, "r", encoding="utf-8") as f:
         data = json.load(f).get("data", [])
 
-    # Select representative items
-    sampled = data[:sample_size]
+    def _get_event_label(item: Dict[str, Any]) -> Optional[str]:
+        text = item.get("text", "")
+        raw = item.get("label")
+        if not text.strip() or raw not in TOPIC_TO_TAXONOMY:
+            return None
+        return TOPIC_TO_TAXONOMY[raw]
+
+    sampled = stratified_sample(data, _get_event_label, sample_size)
     y_true = []
     y_pred = []
     t0 = time.time()
-
-    all_tax_labels = sorted(list(set(TOPIC_TO_TAXONOMY.values())))
 
     for item in sampled:
         text = item.get("text", "")

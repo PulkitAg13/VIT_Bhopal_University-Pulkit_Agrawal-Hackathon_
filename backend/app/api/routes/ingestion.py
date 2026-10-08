@@ -37,6 +37,7 @@ def ingest(payload: IngestRequest, db: Session = Depends(get_db)) -> IngestRespo
                 source_type=item.source_type,
                 source_url=item.source_url,
                 published_at=item.published_at,
+                retrieved_at=item.retrieved_at,
                 db=db,
             )
             signals.append(result)

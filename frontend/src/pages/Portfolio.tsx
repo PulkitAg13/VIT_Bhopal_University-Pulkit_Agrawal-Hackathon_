@@ -8,16 +8,28 @@ const COLORS = ['#2563eb', '#4f46e5', '#0891b2', '#059669', '#d97706', '#dc2626'
 export default function PortfolioPage() {
   const [portfolio, setPortfolio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const loadPortfolio = () => {
+    setLoading(true);
+    setError('');
     api.fetchPortfolioExposure()
       .then(setPortfolio)
-      .catch(() => {})
+      .catch((err) => setError(err.message || 'Unable to load portfolio data'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadPortfolio();
   }, []);
 
   if (loading) return <div className="loading-state"><div className="spinner" /></div>;
-  if (!portfolio) return <div className="error-state"><p>Unable to load portfolio data</p></div>;
+  if (error || !portfolio) return (
+    <div className="error-state">
+      <p>{error || 'Unable to load portfolio data'}</p>
+      <button className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }} onClick={loadPortfolio}>Retry</button>
+    </div>
+  );
 
   const byClass = portfolio.by_asset_class || [];
   const bySector = portfolio.by_sector || [];

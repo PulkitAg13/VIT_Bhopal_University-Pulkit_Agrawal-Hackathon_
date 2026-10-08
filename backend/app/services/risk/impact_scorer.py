@@ -103,8 +103,15 @@ def compute_impact_score(payload: Dict[str, Any]) -> Dict[str, Any]:
     novelty = float(payload.get("novelty", 0.8))
     novelty = max(0.0, min(1.0, novelty))
 
-    recency_hours = float(payload.get("recency_hours", 0.0))
-    recency_hours = max(0.0, recency_hours)
+    recency_available = bool(payload.get("recency_available", True))
+    raw_recency = payload.get("recency_hours")
+    if not recency_available or raw_recency is None:
+        recency_hours = None
+        recency_raw = 0.0
+        unavailable_components.append("recency")
+    else:
+        recency_hours = max(0.0, float(raw_recency))
+        recency_raw = max(0.0, (1.0 - (recency_hours / 48.0))) * 10.0
 
     entity_relevance = float(payload.get("entity_relevance", 0.5))
     entity_relevance = max(0.0, min(1.0, entity_relevance))
@@ -133,8 +140,6 @@ def compute_impact_score(payload: Dict[str, Any]) -> Dict[str, Any]:
     source_raw = source_credibility * 10.0
     corroboration_raw = corroboration * 10.0
     novelty_raw = novelty * 10.0
-    # Recency: decays over 48 hours
-    recency_raw = max(0.0, (1.0 - (recency_hours / 48.0))) * 10.0
     entity_raw = entity_relevance * 10.0
     volatility_raw = market_volatility * 10.0
     exposure_raw = portfolio_exposure * 10.0

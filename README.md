@@ -31,18 +31,18 @@ AI-powered financial risk intelligence platform for wholesale banking, featuring
 
 ### Implemented End-to-End
 
-- **FinBERT Sentiment Analysis** — ProsusAI/finbert for financial-domain sentiment
-- **Zero-Shot Event Classification** — facebook/bart-large-mnli classifying into 15 event categories
-- **Sentence Embeddings** — all-MiniLM-L6-v2 for deduplication, novelty, corroboration
-- **Entity Extraction** — Config-driven dictionary + regex with entity resolution
-- **Explainable Impact Scoring** — 9-component weighted formula with "Why this score?" breakdown
+- **FinBERT Sentiment Analysis** — ProsusAI/finbert for financial-domain sentiment (mandatory, no keyword fallback)
+- **Zero-Shot Event Classification** — facebook/bart-large-mnli classifying into canonical event taxonomy (mandatory, no keyword fallback)
+- **Sentence Embeddings** — all-MiniLM-L6-v2 for deduplication, novelty, corroboration (mandatory, no random fallback)
+- **Named Entity Recognition** — Transformer NER (`dslim/bert-base-NER`) as mandatory primary stage with secondary canonical financial entity resolution and enrichment
+- **Explainable Impact Scoring** — 9-component weighted formula with explainable breakdown, explicit unavailable flags, and recency fallback to retrieval/created timestamps
 - **Event Clustering** — Cosine-similarity-based deduplication with lifecycle (NEW → DEVELOPING → ESCALATING)
-- **Stress Testing Engine** — 5 scenarios with asset-level impact across 6 asset classes
+- **Stress Testing Engine** — 5 scenarios with asset-level impact across 6 asset classes and automatic execution for eligible high-impact events
 - **Real-Time Pipeline** — Redis pub/sub → WebSocket broadcasting
 - **Database Persistence** — PostgreSQL with full ORM (sources, documents, entities, signals, clusters, portfolio, simulations)
 - **Yahoo Finance RSS** — Live financial news ingestion via feedparser
 - **Dataset Replay** — Replay HuggingFace datasets through the pipeline
-- **Portfolio Service** — 18-position synthetic wholesale banking portfolio ($100M)
+- **Portfolio Service** — 18-position wholesale banking portfolio ($100M)
 
 ### Data Sources
 
@@ -55,11 +55,12 @@ AI-powered financial risk intelligence platform for wholesale banking, featuring
 
 ### Models
 
-| Model | Purpose | Source |
-|-------|---------|--------|
-| ProsusAI/finbert | Financial sentiment | HuggingFace |
-| all-MiniLM-L6-v2 | Sentence embeddings | sentence-transformers |
-| facebook/bart-large-mnli | Event classification | HuggingFace |
+| Model | Purpose | Source | Status |
+|-------|---------|--------|--------|
+| ProsusAI/finbert | Financial sentiment | HuggingFace | Mandatory |
+| all-MiniLM-L6-v2 | Sentence embeddings | sentence-transformers | Mandatory |
+| facebook/bart-large-mnli | Event classification | HuggingFace | Mandatory |
+| dslim/bert-base-NER | Named entity recognition | HuggingFace | Mandatory |
 
 ## Quick Start
 

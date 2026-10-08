@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import * as api from '../api/client';
 
@@ -10,15 +10,27 @@ export default function StressTestingPage() {
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadStressData = () => {
+    setLoading(true);
+    setError('');
+    Promise.all([
+      api.fetchStressScenarios(),
+      api.fetchStressResults(),
+    ])
+      .then(([s, r]) => {
+        setScenarios(s.scenarios || []);
+        setResults(r.results || []);
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to load stress test data');
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    Promise.all([
-      api.fetchStressScenarios().catch(() => ({ scenarios: [] })),
-      api.fetchStressResults().catch(() => ({ results: [] })),
-    ]).then(([s, r]) => {
-      setScenarios(s.scenarios || []);
-      setResults(r.results || []);
-    }).finally(() => setLoading(false));
+    loadStressData();
   }, []);
 
   const handleRun = async () => {
@@ -27,7 +39,7 @@ export default function StressTestingPage() {
       const result = await api.runStressTest(selected);
       setLastResult(result);
       // Refresh results
-      const r = await api.fetchStressResults().catch(() => ({ results: [] }));
+      const r = await api.fetchStressResults();
       setResults(r.results || []);
     } catch (err: any) {
       setLastResult({ error: err.message });
@@ -37,6 +49,13 @@ export default function StressTestingPage() {
   };
 
   if (loading) return <div className="loading-state"><div className="spinner" /></div>;
+  if (error) return (
+    <div className="error-state">
+      <AlertTriangle size={48} style={{ color: 'var(--risk-critical)' }} />
+      <p>{error}</p>
+      <button className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }} onClick={loadStressData}>Retry</button>
+    </div>
+  );
 
   const impactData = (lastResult?.asset_level_impacts || []).map((a: any) => ({
     name: a.asset_class,

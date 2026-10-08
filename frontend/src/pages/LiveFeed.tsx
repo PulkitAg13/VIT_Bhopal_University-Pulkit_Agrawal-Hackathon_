@@ -7,6 +7,7 @@ export default function LiveFeedPage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [wsStatus, setWsStatus] = useState('Connecting...');
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
@@ -16,11 +17,17 @@ export default function LiveFeedPage() {
   const [ingestSource, setIngestSource] = useState('rss');
   const [ingestTicker, setIngestTicker] = useState('AAPL');
 
-  useEffect(() => {
+  const loadFeed = () => {
+    setLoading(true);
+    setError('');
     api.fetchEvents({ page_size: 50 })
       .then(r => setEvents(r.items || []))
-      .catch(() => {})
+      .catch((err) => setError(err.message || 'Failed to load live feed'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadFeed();
   }, []);
 
   useEffect(() => {
@@ -54,6 +61,13 @@ export default function LiveFeedPage() {
   });
 
   if (loading) return <div className="loading-state"><div className="spinner" /><p>Loading live feed...</p></div>;
+  if (error) return (
+    <div className="error-state">
+      <AlertTriangle size={48} style={{ color: 'var(--risk-critical)' }} />
+      <p>{error}</p>
+      <button className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }} onClick={loadFeed}>Retry</button>
+    </div>
+  );
 
   return (
     <>

@@ -1,6 +1,6 @@
 # FinRisk Intelligence — Model Evaluation Report
 
-**Generated:** 2026-10-05 14:23:53 UTC
+**Generated:** 2026-10-08 17:20:20 UTC
 **Methodology:** Evaluated on real HuggingFace test/validation datasets.
 
 ---
@@ -14,20 +14,20 @@ ProsusAI/finbert is evaluated across two independent financial benchmarks:
 ### Twitter Financial News Sentiment
 
 - **Evaluated Samples:** 30
-- **Accuracy:** 76.67%
-- **Macro F1:** 0.6209
-- **Weighted F1:** 0.8673
-- **Macro Precision:** 0.6667
-- **Macro Recall:** 0.5862
-- **Average Inference Latency:** 214.8 ms/text
+- **Accuracy:** 60.00%
+- **Macro F1:** 0.6019
+- **Weighted F1:** 0.6019
+- **Macro Precision:** 0.6727
+- **Macro Recall:** 0.6000
+- **Average Inference Latency:** 93.7 ms/text
 
 #### Per-Class Metrics
 
 | Class | Precision | Recall | F1-Score | Support |
 |-------|-----------|--------|----------|---------|
-| Negative | 1.0000 | 0.7586 | 0.8627 | 29 |
-| Neutral | 0.0000 | 0.0000 | 0.0000 | 0 |
-| Positive | 1.0000 | 1.0000 | 1.0000 | 1 |
+| Negative | 0.7143 | 0.5000 | 0.5882 | 10 |
+| Neutral | 0.4706 | 0.8000 | 0.5926 | 10 |
+| Positive | 0.8333 | 0.5000 | 0.6250 | 10 |
 
 #### Confusion Matrix
 
@@ -35,27 +35,27 @@ Columns = Predicted (`negative`, `neutral`, `positive`), Rows = Ground Truth:
 
 | True \ Pred | Negative | Neutral | Positive |
 |-------------|----------|---------|----------|
-| **Negative** | 22 | 7 | 0 |
-| **Neutral** | 0 | 0 | 0 |
-| **Positive** | 0 | 0 | 1 |
+| **Negative** | 5 | 5 | 0 |
+| **Neutral** | 1 | 8 | 1 |
+| **Positive** | 1 | 4 | 5 |
 
 ### Financial Phrasebank
 
 - **Evaluated Samples:** 30
-- **Accuracy:** 100.00%
-- **Macro F1:** 0.6667
-- **Weighted F1:** 1.0000
-- **Macro Precision:** 0.6667
-- **Macro Recall:** 0.6667
-- **Average Inference Latency:** 145.6 ms/text
+- **Accuracy:** 93.33%
+- **Macro F1:** 0.9327
+- **Weighted F1:** 0.9327
+- **Macro Precision:** 0.9444
+- **Macro Recall:** 0.9333
+- **Average Inference Latency:** 108.7 ms/text
 
 #### Per-Class Metrics
 
 | Class | Precision | Recall | F1-Score | Support |
 |-------|-----------|--------|----------|---------|
-| Negative | 0.0000 | 0.0000 | 0.0000 | 0 |
-| Neutral | 1.0000 | 1.0000 | 1.0000 | 1 |
-| Positive | 1.0000 | 1.0000 | 1.0000 | 29 |
+| Negative | 1.0000 | 1.0000 | 1.0000 | 10 |
+| Neutral | 1.0000 | 0.8000 | 0.8889 | 10 |
+| Positive | 0.8333 | 1.0000 | 0.9091 | 10 |
 
 #### Confusion Matrix
 
@@ -63,9 +63,9 @@ Columns = Predicted (`negative`, `neutral`, `positive`), Rows = Ground Truth:
 
 | True \ Pred | Negative | Neutral | Positive |
 |-------------|----------|---------|----------|
-| **Negative** | 0 | 0 | 0 |
-| **Neutral** | 0 | 1 | 0 |
-| **Positive** | 0 | 0 | 29 |
+| **Negative** | 10 | 0 | 0 |
+| **Neutral** | 0 | 8 | 2 |
+| **Positive** | 0 | 0 | 10 |
 
 ---
 
@@ -102,18 +102,29 @@ The 20 fine-grained Twitter topics are mapped to the canonical FinRisk event tax
 
 ### Results
 
-- **Evaluated Samples:** 15
-- **Accuracy:** 0.00%
-- **Macro F1:** 0.0000
-- **Weighted F1:** 0.0000
-- **Average Inference Latency:** 1233.4 ms/text
+- **Evaluated Samples:** 26
+- **Accuracy:** 46.15%
+- **Macro F1:** 0.3755
+- **Weighted F1:** 0.3755
+- **Average Inference Latency:** 6442.6 ms/text
 
 #### Per-Class Metrics
 
 | Taxonomy Category | Precision | Recall | F1-Score | Support |
 |-------------------|-----------|--------|----------|---------|
-| Market Movement | 0.0000 | 0.0000 | 0.0000 | 15 |
-| Other | 0.0000 | 0.0000 | 0.0000 | 0 |
+| Commodity / Energy | 1.0000 | 1.0000 | 1.0000 | 2 |
+| Corporate Action | 0.4000 | 1.0000 | 0.5714 | 2 |
+| Credit Event | 0.0000 | 0.0000 | 0.0000 | 2 |
+| Earnings | 0.4000 | 1.0000 | 0.5714 | 2 |
+| Geopolitical | 1.0000 | 0.5000 | 0.6667 | 2 |
+| Macroeconomic | 0.0000 | 0.0000 | 0.0000 | 2 |
+| Management / Leadership | 0.0000 | 0.0000 | 0.0000 | 2 |
+| Market Movement | 0.0000 | 0.0000 | 0.0000 | 2 |
+| Merger & Acquisition | 1.0000 | 0.5000 | 0.6667 | 2 |
+| Monetary Policy | 0.5000 | 0.5000 | 0.5000 | 2 |
+| Other | 0.4000 | 1.0000 | 0.5714 | 2 |
+| Product Launch | 0.0000 | 0.0000 | 0.0000 | 2 |
+| Regulatory / Legal | 0.2500 | 0.5000 | 0.3333 | 2 |
 
 ---
 

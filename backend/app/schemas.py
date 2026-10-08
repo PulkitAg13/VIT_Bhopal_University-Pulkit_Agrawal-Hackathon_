@@ -99,6 +99,7 @@ class RiskSignalResponse(BaseModel):
     market_context_available: bool = False
     cluster_id: Optional[str] = None
     cluster_status: Optional[str] = None
+    already_processed: Optional[bool] = False
 
     class Config:
         from_attributes = True

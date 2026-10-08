@@ -26,7 +26,7 @@ export const fetchRiskTimeline = () => request<any[]>('/api/v1/risk/timeline');
 // ── Events ───────────────────────────────────────
 export interface EventsParams {
   page?: number; page_size?: number; event_class?: string;
-  risk_level?: string; source_type?: string; sentiment?: string; search?: string;
+  risk_level?: string; source_type?: string; source?: string; sentiment?: string; search?: string;
 }
 export const fetchEvents = (params: EventsParams = {}) => {
   const qs = new URLSearchParams();

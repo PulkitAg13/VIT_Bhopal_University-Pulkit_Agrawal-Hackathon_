@@ -421,14 +421,17 @@ class ModelManager:
         """Extract named entities using transformer NER model.
         
         Returns list of {word, entity_group, score, start, end}.
-        Raises ModelUnavailableError if NER pipeline cannot be loaded.
+        Raises ModelUnavailableError if NER pipeline cannot be loaded or inference fails.
         """
         if self._ner_pipeline is None:
             self.load_ner()
 
         if self._ner_pipeline is None or self._ner_status != READY:
-            logger.warning("NER model unavailable (status: %s)", self._ner_status)
-            return []
+            raise ModelUnavailableError(
+                model_name="dslim/bert-base-NER",
+                status=self._ner_status,
+                message=f"Transformer NER model unavailable: {self._ner_status}",
+            )
 
         try:
             truncated = text[:512]
@@ -446,7 +449,11 @@ class ModelManager:
             ]
         except Exception as exc:
             logger.warning("NER inference error: %s", exc)
-            return []
+            raise ModelUnavailableError(
+                model_name="dslim/bert-base-NER",
+                status=f"{ERROR}: {exc}",
+                message=f"Transformer NER inference failed: {exc}",
+            )
 
     # ── Status and Readiness ─────────────────────────────────
     def status(self) -> Dict[str, str]:
@@ -519,6 +526,11 @@ class ModelManager:
                 self._classifier_model_name or "facebook/bart-large-mnli",
                 self._classifier_status,
             )
+
+        if self._ner_pipeline is None:
+            self.load_ner()
+        if self._ner_status != READY:
+            raise ModelUnavailableError("dslim/bert-base-NER", self._ner_status)
 
     def load_all(self) -> None:
         """Pre-load all models sequentially and thread-safely."""

@@ -678,6 +678,8 @@ class RiskFusionService:
         source_type: str = "manual",
         source_url: Optional[str] = None,
         published_at: Optional[datetime] = None,
+        retrieved_at: Optional[datetime] = None,
+        created_at: Optional[datetime] = None,
         db: Optional[Session] = None,
     ) -> Dict[str, Any]:
         """Run complete NLP and risk assessment pipeline.
@@ -685,7 +687,8 @@ class RiskFusionService:
         CRITICAL:
         - Fails cleanly if mandatory NLP models are unavailable (HTTP 503 / ModelUnavailableError).
         - Prevents duplicate documents and risk signals deterministically.
-        - Calculates real recency from published_at / current timestamp.
+        - Calculates real recency from published_at, retrieval, or created timestamp;
+          explicitly marks recency unavailable if no usable timestamp exists.
         """
         t0 = time.time()
         text_clean = text.strip()
@@ -741,17 +744,20 @@ class RiskFusionService:
         # 9. Portfolio Exposure (direct vs. indirect)
         exposure = self._compute_entity_exposure(entities, db)
 
-        # 10. Real Recency: calculate actual hours since publication
+        # 10. Real Recency: calculate actual hours from published_at, retrieval, or created timestamp
         now_utc = datetime.now(timezone.utc)
-        if published_at:
-            pub_dt = published_at
-            if pub_dt.tzinfo is None:
-                pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+        usable_timestamp = published_at or retrieved_at or created_at
+        if usable_timestamp:
+            ts = usable_timestamp
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
             else:
-                pub_dt = pub_dt.astimezone(timezone.utc)
-            recency_hours = max(0.0, (now_utc - pub_dt).total_seconds() / 3600.0)
+                ts = ts.astimezone(timezone.utc)
+            recency_hours = max(0.0, (now_utc - ts).total_seconds() / 3600.0)
+            recency_available = True
         else:
-            recency_hours = 0.0
+            recency_hours = None
+            recency_available = False
 
         # 11. Novelty & Corroboration & Clustering
         if db is not None:
@@ -792,6 +798,7 @@ class RiskFusionService:
             "corroboration": corrob["score"],
             "novelty": novelty,
             "recency_hours": recency_hours,
+            "recency_available": recency_available,
             "entity_relevance": entity_relevance,
             "market_volatility": market_ctx.get("market_volatility", 0.0),
             "market_context_available": market_ctx.get("market_context_available", False),
@@ -821,13 +828,18 @@ class RiskFusionService:
         else:
             risk_trajectory = "LOW"
 
+        recency_str = (
+            f"Recency: {recency_hours:.1f}h ago"
+            if (recency_available and recency_hours is not None)
+            else "Recency: unavailable"
+        )
         explanation = [
             f"Sentiment: {sentiment['label']} ({sentiment['score']:+.2f}) via {sentiment.get('model', 'unknown')}",
             f"Event: {event['class']} ({event['confidence']:.2f} confidence) via {event.get('model', 'unknown')}",
             f"Source credibility: {cred['score']:.2f} — {cred['label']}",
             f"Corroboration: {corrob['score']:.2f} ({corrob.get('independent_provider_count', 0)} independent providers)",
             f"Novelty: {novelty:.2f}",
-            f"Recency: {recency_hours:.1f}h ago",
+            recency_str,
             f"Market context: {'available' if market_ctx.get('market_context_available') else 'unavailable'}",
             f"Portfolio exposure: {exposure.get('total_exposure_percentage', 0.0) * 100:.1f}% "
             f"({len(exposure.get('affected_positions', []))} positions: direct ${exposure.get('direct_exposure_value', 0):,.0f}, indirect ${exposure.get('indirect_exposure_value', 0):,.0f})",
@@ -870,7 +882,7 @@ class RiskFusionService:
                 original_text=text_clean,
                 source_url=source_url,
                 published_at=published_at,
-                retrieved_at=now_utc,
+                retrieved_at=retrieved_at or now_utc,
                 embedding_vector=embedding.tolist(),
             )
             db.add(doc)
