@@ -467,7 +467,7 @@ def main() -> None:
     print("FinRisk Intelligence — Real Dataset Model Evaluation")
     print("=" * 60)
 
-    from app.core.model_manager import get_model_manager
+    from backend.app.core.model_manager import get_model_manager
     mm = get_model_manager()
 
     print("\n1. Loading models...")
