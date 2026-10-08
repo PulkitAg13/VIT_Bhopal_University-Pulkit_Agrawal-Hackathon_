@@ -46,9 +46,9 @@ def main() -> None:
     print("FinRisk Intelligence — Seeding Demo Data")
     print("=" * 60)
 
-    from app.core.database import SessionLocal
-    from app.services.risk.risk_fusion import RiskFusionService
-    from app.services.portfolio.portfolio_service import PortfolioService
+    from backend.app.core.database import SessionLocal
+    from backend.app.services.risk.risk_fusion import RiskFusionService
+    from backend.app.services.portfolio.portfolio_service import PortfolioService
 
     db = SessionLocal()
     risk_service = RiskFusionService()
