@@ -2,7 +2,6 @@
 FinBERT-powered financial sentiment analysis.
 
 Uses ProsusAI/finbert via the ModelManager singleton.
-Falls back to keyword-based analysis if the model is unavailable.
 """
 from __future__ import annotations
 
