@@ -3,7 +3,6 @@ Event classification using zero-shot classification.
 
 Uses facebook/bart-large-mnli via the ModelManager singleton for
 classification into the canonical financial event taxonomy.
-Falls back to keyword matching if the model is unavailable.
 """
 from __future__ import annotations
 
