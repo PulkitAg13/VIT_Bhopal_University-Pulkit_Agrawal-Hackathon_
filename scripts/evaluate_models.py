@@ -22,7 +22,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -58,6 +58,7 @@ TOPIC_TO_TAXONOMY: Dict[int, str] = {
     18: "Market Movement",         # Stock Commentary
     19: "Market Movement",         # Stock Movement
 }
+
 
 # Sentiment integer to label mapping
 TWITTER_SENTIMENT_MAP: Dict[int, str] = {
