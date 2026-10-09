@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/pages/analytics.tsx","./src/pages/dashboard.tsx","./src/pages/entities.tsx","./src/pages/entitydetail.tsx","./src/pages/eventdetail.tsx","./src/pages/events.tsx","./src/pages/livefeed.tsx","./src/pages/portfolio.tsx","./src/pages/settingspage.tsx","./src/pages/stresstesting.tsx"],"version":"5.9.3"}
