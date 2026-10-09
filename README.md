@@ -5,10 +5,10 @@
 | | |
 |---|---|
 | **Candidate Name** | Pulkit Agrawal |
-| **College Email ID** | `your_id@vitbhopal.ac.in` *(replace with your college email)* |
+| **College Email ID** | `pulkit.23bce10735@vitbhopal.ac.in` |
 | **College / Campus** | VIT Bhopal University |
 | **Demo Video Link (YouTube, Unlisted)** | 🎥 **[PASTE YOUTUBE LINK HERE]** |
-| **Slide Deck Link** | 📑 **[PASTE SLIDE DECK LINK HERE]** *(also available in the repo at [`/docs/presentation.pdf`](docs/presentation.pdf))* |
+| **Slide Deck Link** | 📑 **[PASTE SLIDE DECK LINK HERE]**  |
 | **GitHub Repository** | https://github.com/PulkitAg13/VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_ |
 
 ---
@@ -55,9 +55,9 @@ Wholesale banking risk teams are flooded with unstructured information: news wir
 
 ### System design and data flow
 
-![Architecture Diagram](docs/architecture.png)
+![Architecture Diagram]
 
-> 📌 *High-resolution diagram: [`docs/architecture.png`](docs/architecture.png)*
+> 📌 *High-resolution diagram: [`docs/architecture.png`]*
 
 ```mermaid
 flowchart TD
