@@ -150,7 +150,7 @@ export default function SettingsPage() {
             Data: Yahoo Finance RSS, Twitter Financial News datasets, Financial PhraseBank
           </p>
           <p style={{ marginTop: '0.5rem', color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>
-            Built for the VIT Bhopal Hackathon
+            Built for S & P Global Hackathon 2026 by Pulkit Agrawal.
           </p>
         </div>
       </div>
