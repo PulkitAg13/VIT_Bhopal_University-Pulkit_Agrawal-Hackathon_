@@ -1,199 +1,202 @@
 # FinRisk Intelligence
+### AI-Powered Financial Risk Intelligence & Event-Driven Portfolio Stress Testing
 
-AI-powered financial risk intelligence platform for wholesale banking, featuring real-time NLP event processing, stress testing, and explainable risk scoring.
+**S&P Global & Crisil Campus Hackathon 2026**
 
-## Architecture
+**Candidate Name:** Pulkit Agrawal  
+**College / Campus:** VIT Bhopal University  
+**Submission Type:** Individual  
 
-```
-┌─────────────────────────────────────────────────┐
-│                    Frontend                     │
-│  React + TypeScript + Vite + Recharts           │
-│  Sidebar nav · Dashboard · Events · Entities    │
-│  Portfolio · Stress Testing · Analytics         │
-└──────────────────────┬──────────────────────────┘
-                       │ HTTP / WebSocket
-┌──────────────────────┴──────────────────────────┐
-│                  Backend (FastAPI)               │
-│  /analyze · /ingest · /events · /entities       │
-│  /portfolio · /stress-test · /metrics · /demo   │
-├─────────────────────────────────────────────────┤
-│              NLP Pipeline                       │
-│  FinBERT sentiment · Zero-shot classification   │
-│  Entity extraction · Sentence embeddings        │
-│  Novelty · Corroboration · Impact scoring       │
-├─────────────────────────────────────────────────┤
-│              Infrastructure                     │
-│  PostgreSQL · Redis pub/sub · WebSocket         │
-└─────────────────────────────────────────────────┘
-```
+---
 
-## Features
+## 🔗 Submission Links
 
-### Implemented End-to-End
+| Deliverable | Link |
+|---|---|
+| 🌐 Public GitHub Repository | https://github.com/PulkitAg13/VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_ |
+| 🎥 Demo Video | **[PASTE UNLISTED YOUTUBE LINK HERE]** |
+| 📊 Presentation Deck | **[PASTE PRESENTATION LINK HERE]** |
 
-- **FinBERT Sentiment Analysis** — ProsusAI/finbert for financial-domain sentiment (mandatory, no keyword fallback)
-- **Zero-Shot Event Classification** — facebook/bart-large-mnli classifying into canonical event taxonomy (mandatory, no keyword fallback)
-- **Sentence Embeddings** — all-MiniLM-L6-v2 for deduplication, novelty, corroboration (mandatory, no random fallback)
-- **Named Entity Recognition** — Transformer NER (`dslim/bert-base-NER`) as mandatory primary stage with secondary canonical financial entity resolution and enrichment
-- **Explainable Impact Scoring** — 9-component weighted formula with explainable breakdown, explicit unavailable flags, and recency fallback to retrieval/created timestamps
-- **Event Clustering** — Cosine-similarity-based deduplication with lifecycle (NEW → DEVELOPING → ESCALATING)
-- **Stress Testing Engine** — 5 scenarios with asset-level impact across 6 asset classes and automatic execution for eligible high-impact events
-- **Real-Time Pipeline** — Redis pub/sub → WebSocket broadcasting
-- **Database Persistence** — PostgreSQL with full ORM (sources, documents, entities, signals, clusters, portfolio, simulations)
-- **Yahoo Finance RSS** — Live financial news ingestion via feedparser
-- **Dataset Replay** — Replay HuggingFace datasets through the pipeline
-- **Portfolio Service** — 18-position wholesale banking portfolio ($100M)
+> **Before submission:** Replace the two placeholder links above with the final publicly accessible YouTube demo link and presentation/deck link.
 
-### Data Sources
+---
 
-| Source | Type | Implementation |
-|--------|------|----------------|
-| Yahoo Finance RSS | Live | feedparser → RSS XML parsing |
-| Twitter Financial News Topic | Dataset | HuggingFace datasets library |
-| Twitter Financial News Sentiment | Dataset | HuggingFace datasets library |
-| Financial PhraseBank | Dataset | HuggingFace datasets library |
+# 1. Project Overview
 
-### Models
+## The Problem
 
-| Model | Purpose | Source | Status |
-|-------|---------|--------|--------|
-| ProsusAI/finbert | Financial sentiment | HuggingFace | Mandatory |
-| all-MiniLM-L6-v2 | Sentence embeddings | sentence-transformers | Mandatory |
-| facebook/bart-large-mnli | Event classification | HuggingFace | Mandatory |
-| dslim/bert-base-NER | Named entity recognition | HuggingFace | Mandatory |
+Financial risk teams continuously monitor large volumes of financial news, market information, and social-media-driven signals. The challenge is not simply finding information — it is determining **which events matter, how significant they are, whether multiple sources corroborate the same event, and how those events could affect an existing portfolio**.
 
-## Quick Start
+Traditional monitoring workflows often require analysts to manually read large amounts of unstructured text, identify relevant companies or entities, classify events, assess sentiment and severity, and then translate those signals into portfolio-level risk decisions.
 
-### Docker Compose (Recommended)
+This creates a gap between:
 
-```bash
-# Clone and start
-git clone <repo>
-cd VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_
+**Unstructured Financial Information → Risk Intelligence → Portfolio Decision-Making**
 
-# Start all services
-docker compose up --build
+---
 
-# Access:
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:8000
-# API Docs: http://localhost:8000/docs
-```
+## The Solution
 
-### Local Development
+**FinRisk Intelligence** is an AI-powered financial risk intelligence platform that converts unstructured financial information into structured, explainable risk signals and connects those signals directly to portfolio stress testing.
 
-```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+The platform processes financial text through a mandatory NLP pipeline that performs:
 
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev
-```
+- Financial-domain sentiment analysis
+- Financial event classification
+- Named entity extraction and resolution
+- Semantic similarity and event deduplication
+- Novelty detection
+- Source corroboration
+- Explainable impact scoring
+- Event clustering and lifecycle tracking
 
-### Download Datasets
+Each detected event can produce structured intelligence including:
 
-```bash
-pip install datasets
-python scripts/download_datasets.py
-```
+- **Sentiment Score:** -1 to +1
+- **Event Classification:** Financial event taxonomy
+- **Impact Score:** 1–10
+- Affected entities
+- Source and provenance information
+- Explainable risk factors
+- Event cluster and lifecycle information
 
-## API Endpoints
+High-impact eligible events can automatically trigger the portfolio stress-testing engine, creating a direct connection between **event intelligence and financial risk assessment**.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/health` | System health (DB, Redis, models) |
-| POST | `/api/v1/analyze` | Run full NLP + risk pipeline on text |
-| POST | `/api/v1/ingest` | Fetch from sources and analyze |
-| GET | `/api/v1/events` | List events (with filters, pagination) |
-| GET | `/api/v1/events/:id` | Event detail with explainability |
-| GET | `/api/v1/entities` | List detected entities |
-| GET | `/api/v1/entities/:id` | Entity detail with timelines |
-| GET | `/api/v1/portfolio` | Portfolio positions |
-| GET | `/api/v1/portfolio/exposure` | Portfolio exposure breakdown |
-| GET | `/api/v1/stress-test/scenarios` | Available stress scenarios |
-| POST | `/api/v1/stress-test` | Run stress test on portfolio |
-| GET | `/api/v1/stress-test/results` | Stress test history |
-| GET | `/api/v1/metrics` | Aggregated risk metrics |
-| GET | `/api/v1/analytics/overview` | Full analytics with distributions |
-| GET | `/api/v1/risk/timeline` | Risk trajectory data |
-| POST | `/api/v1/demo/run` | Run full pipeline demo |
-| WS | `/ws/risk-events` | Real-time event stream |
+---
 
-## Project Structure
+# 2. Core Capabilities
 
-```
-├── backend/
-│   ├── app/
-│   │   ├── main.py                    # FastAPI app with lifespan
-│   │   ├── models.py                  # SQLAlchemy ORM models
-│   │   ├── schemas.py                 # Pydantic request/response schemas
-│   │   ├── api/
-│   │   │   ├── dependencies.py        # Service singletons
-│   │   │   └── routes/                # All API route handlers
-│   │   ├── core/
-│   │   │   ├── config.py              # Settings (env-driven)
-│   │   │   ├── database.py            # PostgreSQL engine/session
-│   │   │   ├── model_manager.py       # ML model singleton manager
-│   │   │   ├── redis_client.py        # Redis pub/sub client
-│   │   │   └── logging.py             # Structured logging
-│   │   └── services/
-│   │       ├── nlp/
-│   │       │   ├── sentiment.py       # FinBERT sentiment
-│   │       │   ├── event_classifier.py # Zero-shot classification
-│   │       │   └── entity_extractor.py # Entity extraction + resolution
-│   │       ├── risk/
-│   │       │   ├── risk_fusion.py      # Full risk pipeline
-│   │       │   └── impact_scorer.py    # Explainable impact scoring
-│   │       ├── stress/
-│   │       │   └── stress_engine.py    # Portfolio stress testing
-│   │       ├── portfolio/
-│   │       │   └── portfolio_service.py # Portfolio management
-│   │       └── ingestion/
-│   │           └── sources.py          # RSS + dataset + demo sources
-│   ├── Dockerfile
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx                    # Shell with sidebar routing
-│   │   ├── api/client.ts             # Typed API client
-│   │   ├── pages/
-│   │   │   ├── Dashboard.tsx          # Risk command center
-│   │   │   ├── LiveFeed.tsx           # Real-time event feed
-│   │   │   ├── Events.tsx             # Event list with filters
-│   │   │   ├── EventDetail.tsx        # Event detail + explainability
-│   │   │   ├── Entities.tsx           # Entity risk monitor
-│   │   │   ├── EntityDetail.tsx       # Entity timelines
-│   │   │   ├── Portfolio.tsx          # Portfolio positions + charts
-│   │   │   ├── StressTesting.tsx      # Stress test runner
-│   │   │   ├── Analytics.tsx          # Distributions + charts
-│   │   │   └── SettingsPage.tsx       # Manual analysis + status
-│   │   └── index.css                  # Professional design system
-│   ├── Dockerfile
-│   └── nginx.conf
-├── config/
-│   ├── entities.yaml                  # Entity resolution table
-│   ├── event_taxonomy.yaml            # 15-category event taxonomy
-│   └── stress_scenarios.yaml          # 5 stress scenarios with assumptions
-├── scripts/
-│   └── download_datasets.py           # Real HuggingFace dataset downloader
-├── data/
-│   └── README.md                      # Dataset documentation
-├── docs/
-│   └── implementation_audit.md        # Technical audit report
-└── docker-compose.yml                 # Full stack orchestration
-```
+## 🧠 AI-Powered Risk Intelligence
 
-## Hardware Requirements
+### Financial Sentiment Analysis
 
-- **CPU:** The system runs on CPU. Models are automatically loaded on CPU when no GPU is available.
-- **GPU:** If CUDA is available, models will automatically use GPU for faster inference.
-- **RAM:** ~4GB recommended for model loading (FinBERT + embeddings + classifier).
-- **Disk:** ~3GB for model downloads on first run.
+Uses **ProsusAI/FinBERT** to determine financial-domain sentiment rather than relying on generic sentiment analysis.
 
-## License
+Outputs include:
 
-MIT
+- Positive
+- Neutral
+- Negative
+- Continuous sentiment score
+
+---
+
+### Event Classification
+
+Uses **facebook/bart-large-mnli** for zero-shot classification into the platform's financial event taxonomy.
+
+Examples of event categories include:
+
+- Geopolitical
+- Macroeconomic
+- Credit Event
+- M&A
+- Product Launch
+- Regulatory
+- Market-related events
+- Other financial risk events
+
+---
+
+### Entity Extraction & Resolution
+
+Uses transformer-based Named Entity Recognition with:
+
+**dslim/bert-base-NER**
+
+The extracted entities are subsequently resolved against canonical financial entities and enriched using the project's entity configuration.
+
+This allows the system to connect multiple mentions of the same company or financial entity to a common risk timeline.
+
+---
+
+### Semantic Deduplication & Event Clustering
+
+The system uses sentence embeddings from:
+
+**all-MiniLM-L6-v2**
+
+to identify semantically similar information.
+
+Events can be grouped using:
+
+- Semantic similarity
+- Event classification
+- Entity overlap
+- Temporal proximity
+
+This helps prevent multiple reports about the same underlying event from being treated as completely independent risk signals.
+
+---
+
+### Explainable Impact Scoring
+
+FinRisk Intelligence generates an explainable **1–10 Impact Score** using multiple risk-related components.
+
+The scoring process considers factors such as:
+
+- Sentiment
+- Event severity
+- Novelty
+- Entity relevance
+- Corroboration
+- Recency
+- Other contextual risk signals
+
+The system exposes the reasoning behind the impact score rather than treating the score as an opaque prediction.
+
+---
+
+### Source Corroboration
+
+Events can be evaluated across multiple sources using provenance information such as:
+
+- Provider
+- Domain
+- Source type
+- Source URL
+
+This allows the system to distinguish between isolated signals and events supported by multiple sources.
+
+---
+
+# 3. Event-Driven Portfolio Stress Testing
+
+The second major component of FinRisk Intelligence is the **portfolio stress-testing engine**.
+
+Instead of stopping after identifying a risky event, the platform asks:
+
+> **"What could this event do to the portfolio?"**
+
+The system maintains a synthetic wholesale banking portfolio containing:
+
+- **18 positions**
+- **6 asset classes**
+- **$100M total portfolio value**
+
+The stress engine supports multiple predefined stress scenarios and evaluates asset-level impacts.
+
+### Example Workflow
+
+```text
+Financial News / Social Signal
+              ↓
+       NLP Risk Engine
+              ↓
+   Entity + Event Detection
+              ↓
+ Sentiment + Impact + Novelty
+              ↓
+      Event Classification
+              ↓
+    Event Clustering
+              ↓
+ High-Impact Event Detected
+              ↓
+      Stress Test Trigger
+              ↓
+     Portfolio Simulation
+              ↓
+ Asset-Level Impact Analysis
+              ↓
+     Portfolio Risk View
