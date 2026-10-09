@@ -55,9 +55,9 @@ Wholesale banking risk teams are flooded with unstructured information: news wir
 
 ### System design and data flow
 
-![Architecture Diagram]
+[Architecture Diagram]
 
-> 📌 *High-resolution diagram: [`docs/architecture.png`]*
+> 📌 *High-resolution diagram:*
 
 ```mermaid
 flowchart TD
