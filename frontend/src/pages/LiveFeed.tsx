@@ -114,7 +114,7 @@ export default function LiveFeedPage() {
     <div className="error-state">
       <AlertTriangle size={48} style={{ color: 'var(--risk-critical)' }} />
       <p>{error}</p>
-      <button className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }} onClick={loadFeed}>Retry</button>
+      <button className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }} onClick={() => loadFeed(true)}>Retry</button>
     </div>
   );
 
