@@ -698,16 +698,22 @@ class RiskFusionService:
         # 1. Preflight: verify mandatory NLP models are ready
         self.mm.check_mandatory_models()
 
-        # 2. Duplicate protection: check if identical text or URL was already ingested
+        # 2. Duplicate protection: check if identical text or specific article URL was already ingested
         if db is not None:
-            existing_doc = (
-                db.query(Document)
-                .filter(
+            is_generic_dataset_url = source_url in {
+                "https://huggingface.co/datasets/twitter_sentiment",
+                "https://huggingface.co/datasets/twitter_topic",
+                "https://huggingface.co/datasets/financial_phrasebank",
+            }
+            if source_url and not is_generic_dataset_url:
+                doc_query = db.query(Document).filter(
                     (Document.original_text == text_clean)
-                    | ((Document.source_url == source_url) & (Document.source_url.isnot(None)))
+                    | (Document.source_url == source_url)
                 )
-                .first()
-            )
+            else:
+                doc_query = db.query(Document).filter(Document.original_text == text_clean)
+
+            existing_doc = doc_query.first()
             if existing_doc:
                 existing_signal = (
                     db.query(RiskSignal)
@@ -717,7 +723,7 @@ class RiskFusionService:
                 if existing_signal:
                     logger.info("Deterministic duplicate detected (doc_id=%s). Returning existing signal.", existing_doc.id)
                     from app.api.routes.events import _signal_to_dict
-                    res = _signal_to_dict(existing_signal)
+                    res = _signal_to_dict(existing_signal, db=db)
                     res["already_processed"] = True
                     return res
 
