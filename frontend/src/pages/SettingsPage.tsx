@@ -48,20 +48,62 @@ export default function SettingsPage() {
           <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '0.75rem' }}>
             Enter financial text to run through the full NLP + risk pipeline.
           </p>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Sample Presets:</span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+              onClick={() => setAnalyzeText('Apple reported weaker iPhone demand as consumer spending slowed, while suppliers reduced component orders amid concerns about softer global demand.')}
+            >
+              Supply Chain & Earnings
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+              onClick={() => setAnalyzeText('Credit rating agency downgrades several major financial institutions citing deteriorating loan quality and surging default provisions.')}
+            >
+              Credit Risk & Downgrade
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+              onClick={() => setAnalyzeText('Escalating geopolitical tensions disrupt critical energy supply routes, raising concerns over global inflation and corporate input costs.')}
+            >
+              Geopolitical Energy Shock
+            </button>
+          </div>
           <textarea
             className="input"
             rows={4}
             style={{ width: '100%', resize: 'vertical' }}
-            placeholder="Enter financial text to analyze..."
+            placeholder="Enter financial news text or select a realistic example above..."
             value={analyzeText}
             onChange={e => setAnalyzeText(e.target.value)}
           />
-          <button className="btn btn-primary" onClick={handleAnalyze} disabled={analyzing || !analyzeText.trim()} style={{ marginTop: '0.75rem' }} id="analyze-btn">
-            <Send size={16} /> {analyzing ? 'Analyzing...' : 'Analyze'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.75rem' }}>
+            <button className="btn btn-primary" onClick={handleAnalyze} disabled={analyzing || !analyzeText.trim()} id="analyze-btn">
+              <Send size={16} /> {analyzing ? 'Analyzing NLP Pipeline...' : 'Analyze Text'}
+            </button>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+              Runs live FinBERT, zero-shot classification, and entity extraction.
+            </span>
+          </div>
 
           {analyzeResult && !analyzeResult.error && (
             <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span className="tag" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                  Model-Generated Risk Assessment
+                </span>
+                {analyzeResult.stress_test?.triggered && (
+                  <span className="risk-badge high">
+                    ⚡ Auto-Triggered Stress: {analyzeResult.stress_test.scenario}
+                  </span>
+                )}
+              </div>
               <div className="kpi-grid" style={{ marginBottom: '1rem' }}>
                 <div className="kpi-card">
                   <div className="kpi-label">Sentiment</div>
