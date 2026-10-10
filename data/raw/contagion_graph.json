@@ -1,0 +1,436 @@
+{
+  "nodes": [
+    {
+      "id": "Technology",
+      "type": "sector",
+      "label": "Technology"
+    },
+    {
+      "id": "Financials",
+      "type": "sector",
+      "label": "Financials"
+    },
+    {
+      "id": "Energy",
+      "type": "sector",
+      "label": "Energy"
+    },
+    {
+      "id": "Healthcare",
+      "type": "sector",
+      "label": "Healthcare"
+    },
+    {
+      "id": "Consumer",
+      "type": "sector",
+      "label": "Consumer"
+    },
+    {
+      "id": "AAPL",
+      "type": "ticker",
+      "label": "AAPL"
+    },
+    {
+      "id": "MSFT",
+      "type": "ticker",
+      "label": "MSFT"
+    },
+    {
+      "id": "GOOGL",
+      "type": "ticker",
+      "label": "GOOGL"
+    },
+    {
+      "id": "AMZN",
+      "type": "ticker",
+      "label": "AMZN"
+    },
+    {
+      "id": "META",
+      "type": "ticker",
+      "label": "META"
+    },
+    {
+      "id": "NVDA",
+      "type": "ticker",
+      "label": "NVDA"
+    },
+    {
+      "id": "TSLA",
+      "type": "ticker",
+      "label": "TSLA"
+    },
+    {
+      "id": "JPM",
+      "type": "ticker",
+      "label": "JPM"
+    },
+    {
+      "id": "BAC",
+      "type": "ticker",
+      "label": "BAC"
+    },
+    {
+      "id": "GS",
+      "type": "ticker",
+      "label": "GS"
+    },
+    {
+      "id": "XOM",
+      "type": "ticker",
+      "label": "XOM"
+    },
+    {
+      "id": "CVX",
+      "type": "ticker",
+      "label": "CVX"
+    },
+    {
+      "id": "JNJ",
+      "type": "ticker",
+      "label": "JNJ"
+    },
+    {
+      "id": "PFE",
+      "type": "ticker",
+      "label": "PFE"
+    },
+    {
+      "id": "WMT",
+      "type": "ticker",
+      "label": "WMT"
+    }
+  ],
+  "edges": [
+    {
+      "source": "Technology",
+      "target": "AAPL",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Technology",
+      "target": "MSFT",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Technology",
+      "target": "GOOGL",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Technology",
+      "target": "AMZN",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Technology",
+      "target": "META",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Technology",
+      "target": "NVDA",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Technology",
+      "target": "TSLA",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Financials",
+      "target": "JPM",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Financials",
+      "target": "BAC",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Financials",
+      "target": "GS",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Energy",
+      "target": "XOM",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Energy",
+      "target": "CVX",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Healthcare",
+      "target": "JNJ",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Healthcare",
+      "target": "PFE",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "Consumer",
+      "target": "WMT",
+      "weight": 0.55,
+      "relation": "sector_spillover"
+    },
+    {
+      "source": "AAPL",
+      "target": "Technology",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "AAPL",
+      "target": "TSLA",
+      "weight": 0.25,
+      "relation": "hardware_battery_demand"
+    },
+    {
+      "source": "MSFT",
+      "target": "Technology",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "MSFT",
+      "target": "NVDA",
+      "weight": 0.45,
+      "relation": "primary_capex_customer"
+    },
+    {
+      "source": "GOOGL",
+      "target": "Technology",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "GOOGL",
+      "target": "META",
+      "weight": 0.35,
+      "relation": "digital_advertising_market"
+    },
+    {
+      "source": "AMZN",
+      "target": "Technology",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "AMZN",
+      "target": "NVDA",
+      "weight": 0.4,
+      "relation": "aws_custom_capex"
+    },
+    {
+      "source": "META",
+      "target": "Technology",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "META",
+      "target": "GOOGL",
+      "weight": 0.35,
+      "relation": "digital_advertising_market"
+    },
+    {
+      "source": "NVDA",
+      "target": "Technology",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "NVDA",
+      "target": "MSFT",
+      "weight": 0.6,
+      "relation": "gpu_supplier"
+    },
+    {
+      "source": "NVDA",
+      "target": "GOOGL",
+      "weight": 0.55,
+      "relation": "gpu_supplier"
+    },
+    {
+      "source": "NVDA",
+      "target": "META",
+      "weight": 0.55,
+      "relation": "gpu_supplier"
+    },
+    {
+      "source": "NVDA",
+      "target": "AMZN",
+      "weight": 0.5,
+      "relation": "gpu_supplier"
+    },
+    {
+      "source": "NVDA",
+      "target": "TSLA",
+      "weight": 0.45,
+      "relation": "ai_compute"
+    },
+    {
+      "source": "TSLA",
+      "target": "Technology",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "JPM",
+      "target": "Financials",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "JPM",
+      "target": "BAC",
+      "weight": 0.7,
+      "relation": "interbank_clearing"
+    },
+    {
+      "source": "JPM",
+      "target": "GS",
+      "weight": 0.6,
+      "relation": "syndicated_lending"
+    },
+    {
+      "source": "JPM",
+      "target": "XOM",
+      "weight": 0.35,
+      "relation": "credit_line_underwriter"
+    },
+    {
+      "source": "BAC",
+      "target": "Financials",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "BAC",
+      "target": "JPM",
+      "weight": 0.7,
+      "relation": "interbank_clearing"
+    },
+    {
+      "source": "BAC",
+      "target": "WMT",
+      "weight": 0.3,
+      "relation": "revolving_credit_facility"
+    },
+    {
+      "source": "GS",
+      "target": "Financials",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "GS",
+      "target": "JPM",
+      "weight": 0.65,
+      "relation": "prime_brokerage_liquidity"
+    },
+    {
+      "source": "GS",
+      "target": "BAC",
+      "weight": 0.6,
+      "relation": "derivatives_counterparty"
+    },
+    {
+      "source": "GS",
+      "target": "TSLA",
+      "weight": 0.35,
+      "relation": "equity_advisory_capital_markets"
+    },
+    {
+      "source": "GS",
+      "target": "AAPL",
+      "weight": 0.4,
+      "relation": "co_branded_consumer_credit"
+    },
+    {
+      "source": "XOM",
+      "target": "Energy",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "XOM",
+      "target": "CVX",
+      "weight": 0.75,
+      "relation": "commodity_market_coupling"
+    },
+    {
+      "source": "XOM",
+      "target": "WMT",
+      "weight": 0.3,
+      "relation": "logistics_fuel_cost"
+    },
+    {
+      "source": "CVX",
+      "target": "Energy",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "CVX",
+      "target": "XOM",
+      "weight": 0.75,
+      "relation": "commodity_market_coupling"
+    },
+    {
+      "source": "CVX",
+      "target": "WMT",
+      "weight": 0.3,
+      "relation": "logistics_fuel_cost"
+    },
+    {
+      "source": "JNJ",
+      "target": "Healthcare",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "JNJ",
+      "target": "PFE",
+      "weight": 0.4,
+      "relation": "regulatory_trials_market"
+    },
+    {
+      "source": "PFE",
+      "target": "Healthcare",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    },
+    {
+      "source": "PFE",
+      "target": "JNJ",
+      "weight": 0.4,
+      "relation": "regulatory_trials_market"
+    },
+    {
+      "source": "WMT",
+      "target": "Consumer",
+      "weight": 0.65,
+      "relation": "sector_membership"
+    }
+  ]
+}
