@@ -89,6 +89,21 @@ def test_api_ingest_demo(client):
     data = response.json()
     assert data["ingested"] > 0
     assert len(data["signals"]) > 0
+    assert "new_count" in data
+    assert "already_processed" in data
+    assert data["new_count"] + data["already_processed"] == data["ingested"]
+
+
+def test_api_ingest_duplicate_counts(client):
+    # Ingest demo item
+    res1 = client.post("/api/v1/ingest", json={"source": "demo", "max_items": 1})
+    assert res1.status_code == 200
+    # Ingest again - identical item must be counted as already_processed
+    res2 = client.post("/api/v1/ingest", json={"source": "demo", "max_items": 1})
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["already_processed"] == 1
+    assert data2["new_count"] == 0
 
 
 def test_api_ingest_missing_dataset_404(client):
