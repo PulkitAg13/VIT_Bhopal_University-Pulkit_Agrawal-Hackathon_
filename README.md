@@ -7,7 +7,7 @@
 | **Candidate Name** | Pulkit Agrawal |
 | **College Email ID** | `pulkit.23bce10735@vitbhopal.ac.in` |
 | **College / Campus** | VIT Bhopal University |
-| **Demo Video Link (YouTube, Unlisted)** | 🎥 **[PASTE YOUTUBE LINK HERE]** |
+| **Demo Video Link (YouTube, Unlisted)** | 🎥 https://youtu.be/t5AkG_-akgY |
 | **Slide Deck Link** | 📑 https://canva.link/n3rbxmb3hab76kc  |
 | **GitHub Repository** | https://github.com/PulkitAg13/VIT_Bhopal_University-Pulkit_Agrawal-Hackathon_ |
 
