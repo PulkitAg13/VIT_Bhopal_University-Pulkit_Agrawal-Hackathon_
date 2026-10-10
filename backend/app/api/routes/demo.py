@@ -66,29 +66,32 @@ def run_demo(db: Session = Depends(get_db)) -> dict:
     })
 
     # Step 4: Stress test (if triggered)
-    stress_result = None
+    stress_result = result.get("stress_test", {}).get("result")
     if result.get("stress_test", {}).get("triggered"):
         scenario = result["stress_test"].get("scenario", "GEOPOLITICAL_SHOCK")
-        try:
-            portfolio = portfolio_service.load_portfolio(db)
-            stress_result = stress_engine.stress_test(
-                portfolio=portfolio,
-                scenario_name=scenario,
-                trigger_signal_id=result.get("signal_id"),
-                is_auto_triggered=True,
-                db=db,
-            )
-            steps.append({
-                "step": 4,
-                "name": "Stress Test",
-                "status": "complete",
-                "detail": f"Scenario: {scenario}, Loss: ${stress_result['absolute_loss']:,.0f} "
-                          f"({stress_result['loss_percentage']:.1f}%)",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
-        except Exception as exc:
-            logger.error("Demo stress test failed: %s", exc)
-            steps.append({"step": 4, "name": "Stress Test", "status": "error", "detail": str(exc)})
+        if not stress_result:
+            try:
+                portfolio = portfolio_service.load_portfolio(db)
+                stress_result = stress_engine.stress_test(
+                    portfolio=portfolio,
+                    scenario_name=scenario,
+                    trigger_signal_id=result.get("signal_id"),
+                    is_auto_triggered=True,
+                    db=db,
+                )
+            except Exception as exc:
+                logger.error("Demo stress test failed: %s", exc)
+                steps.append({"step": 4, "name": "Stress Test", "status": "error", "detail": str(exc)})
+                return {"steps": steps, "demo_event": result, "stress_test": None, "success": False}
+
+        steps.append({
+            "step": 4,
+            "name": "Stress Test (Auto-Triggered)",
+            "status": "complete",
+            "detail": f"Scenario: {scenario}, Simulated Loss: ${stress_result['absolute_loss']:,.0f} "
+                      f"({stress_result['loss_percentage']:.1f}%)",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
     else:
         steps.append({
             "step": 4,
