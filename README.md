@@ -126,33 +126,37 @@ flowchart TD
 
 | Model | Purpose | Source |
 |---|---|---|
-| `ProsusAI/finbert` | Financial-domain sentiment | HuggingFace |
+| `ProsusAI/finbert` | Financial-domain sentiment analysis | HuggingFace |
 | `facebook/bart-large-mnli` | Zero-shot event classification (15 categories) | HuggingFace |
+| `dslim/bert-base-NER` | Transformer Named Entity Recognition + Canonical resolution | HuggingFace |
 | `all-MiniLM-L6-v2` | Sentence embeddings for deduplication, novelty and corroboration | sentence-transformers |
 
 ### Why these choices
-- **FinBERT** is trained on financial text, so it handles phrases like "beat expectations" or "covenant breach" far better than a generic sentiment model.
-- **Zero-shot classification** lets the event taxonomy be changed in YAML with no retraining or labelled data.
-- **Lightweight embeddings (MiniLM)** keep clustering fast on CPU.
-- **Redis + WebSockets** give a push-based live feed rather than polling.
+- **FinBERT** is trained on financial text, so it handles domain-specific phrases like "beat expectations" or "covenant breach" far better than generic sentiment models.
+- **Zero-shot classification** lets the event taxonomy be configured in YAML without manual labeling or retraining.
+- **Transformer NER + Canonical Entity Resolution** extracts organizations, institutions, and tickers with alias normalization.
+- **Lightweight embeddings (MiniLM)** keep deduplication, novelty, and corroboration fast on CPU.
+- **Automatic Stress Trigger**: Qualifying high-impact events (score >= 7.0 in eligible macro/credit categories) automatically simulate and persist portfolio impacts.
+- **Redis + WebSockets** give a push-based live feed rather than client polling.
 - **Docker Compose** makes the full stack (frontend, backend, PostgreSQL, Redis) reproducible with one command.
 
 ---
 
-## 3. Dataset Used
+## 3. Dataset Used & Data Transparency Disclosures
 
 > ⚠️ No proprietary or confidential client data (including any from S&P Global or Crisil) is used anywhere in this project.
+> All data categories are explicitly labeled to distinguish live feeds, historical replays, synthetic fixtures, and model simulations.
 
-### Sources
+### Data Categories & Provenance
 
-| Source | Type | Access method |
-|---|---|---|
-| Yahoo Finance RSS | Public, live | `feedparser` parses RSS XML |
-| Twitter Financial News: Topic | Public dataset | HuggingFace `datasets` |
-| Twitter Financial News: Sentiment | Public dataset | HuggingFace `datasets` |
-| Financial PhraseBank | Public dataset | HuggingFace `datasets` |
-| Synthetic wholesale banking portfolio | Synthetic (self-generated) | Built into `portfolio_service.py` |
-| Entity table, event taxonomy, stress scenarios | Synthetic / hand-authored config | [`/config`](config/) |
+| Category | Description | Data Type | Transparency Disclosure |
+|---|---|---|---|
+| **Live Financial News** | Yahoo Finance RSS feed for major tickers (AAPL, MSFT, NVDA, etc.) | Public, live web news | Real-time public financial newswire headlines |
+| **Historical Dataset Replay** | Twitter Financial News (Topic & Sentiment) and Financial PhraseBank | Public academic datasets | Sequential historical dataset replay with provenance tracking |
+| **Synthetic Demo Scenarios** | Controlled multi-factor crisis scenarios | Synthetic test fixtures | Deterministic demonstration events; labeled as Synthetic Demo |
+| **Wholesale Portfolio** | $100M wholesale banking book across 18 positions & 6 asset classes | Synthetic baseline | Illustrative baseline portfolio; not an actual institution's book |
+| **Risk Intelligence** | Sentiment, event class, impact score (1–10), novelty, corroboration | Model-generated | Explainable heuristic & transformer analytical output |
+| **Stress Test Outcomes** | Duration-sensitive portfolio loss across 5 macroeconomic shock scenarios | Simulated | Mathematical simulation under predefined stress assumptions |
 
 Datasets are fetched with:
 
@@ -162,12 +166,14 @@ python scripts/download_datasets.py
 
 Dataset details are documented in [`data/README.md`](data/README.md).
 
-### Assumptions
-- The **portfolio** is a synthetic **$100M, 18-position** wholesale banking book spanning **6 asset classes**. It is illustrative and not based on any real institution.
-- **Stress scenarios** are hand-defined, with assumptions documented in `config/stress_scenarios.yaml`. Shock magnitudes are illustrative, not calibrated to regulatory scenarios.
-- **Entity resolution** is dictionary + regex based (`config/entities.yaml`), so it only recognises entities that are in the table.
-- Public social media and news text is used as a **proxy** for the kind of unstructured information a bank's risk team would monitor.
-- Live RSS content changes over time, so results from live ingestion will differ between runs. Dataset replay is deterministic and is the best choice for reproducing results.
+### Replay & Simulation Methodology
+- **Sequential Dataset Replay:** Replay deterministically advances through distinct historical records without repeating identical items (`Record 1 → Record 2 → Record 3...`). Exact duplicate texts are deterministically detected via content hashing/matching.
+- **Automatic Stress Trigger:** High-impact qualifying events (impact score >= 7.0 in systemic categories such as Geopolitical, Credit Event, Macroeconomic, Liquidity) automatically trigger a duration-sensitive portfolio stress simulation and persist the result with `is_auto_triggered = True`.
+- **The portfolio** is a synthetic **$100M, 18-position** wholesale banking book spanning **6 asset classes**. It is illustrative and not based on any real institution.
+- **Stress scenarios** are hand-defined with assumptions documented in `config/stress_scenarios.yaml`. Shock magnitudes are illustrative simulation models, not regulatory predictions.
+- **Entity resolution** resolves extracted entities to canonical issuers and portfolio positions (`config/entities.yaml`).
+- Public social media and news text is used as a **proxy** for the kind of unstructured information a bank's risk team monitors.
+- Live RSS content changes over time, so results from live ingestion will differ between runs. Sequential dataset replay is deterministic and predictable.
 
 ---
 
