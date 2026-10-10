@@ -1,0 +1,68 @@
+{
+  "dataset_evaluated": "Financial PhraseBank (D3)",
+  "sample_size": 1500,
+  "vader_baseline": {
+    "model": "NLTK VADER Lexicon",
+    "accuracy": 0.584,
+    "macro_f1": 0.4609,
+    "confusion_matrix": [
+      [
+        13,
+        10,
+        19
+      ],
+      [
+        15,
+        244,
+        334
+      ],
+      [
+        35,
+        211,
+        619
+      ]
+    ]
+  },
+  "riskpulse_ensemble": {
+    "model": "RiskPulse FinBERT Uncertainty Ensemble (MC-Dropout)",
+    "accuracy": 0.5873,
+    "macro_f1": 0.4781,
+    "expected_calibration_error_ece": 0.3134,
+    "confusion_matrix": [
+      [
+        12,
+        19,
+        11
+      ],
+      [
+        8,
+        322,
+        263
+      ],
+      [
+        31,
+        287,
+        547
+      ]
+    ]
+  },
+  "event_classification_d1": {
+    "evaluated_samples": 500,
+    "taxonomy_distribution": {
+      "Other": 345,
+      "Credit Event": 51,
+      "Earnings": 24,
+      "Regulatory/Legal": 23,
+      "Energy/Commodity": 17,
+      "Geopolitical": 17,
+      "Macroeconomic": 11,
+      "Product Launch": 10,
+      "Merger/Acquisition": 2
+    }
+  },
+  "classes": [
+    "Bearish",
+    "Neutral",
+    "Bullish"
+  ]
+}

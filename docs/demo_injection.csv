@@ -1,0 +1,7 @@
+step,timestamp_offset_sec,source,text,expected_action
+1,0,twitter,"RUMOUR: Multiple hedge fund traders whisper that Regional Horizon Bancorp faces severe liquidity shortage and unannounced emergency Fed discount window borrowing #banks #liquidity",Flagged as UNVERIFIED - Needs Review. Credibility low. No stress test triggered.
+2,20,twitter,"Unconfirmed reports circulating about potential deposit runs at mid-sized lender Horizon Bancorp. Caution advised.",Second unverified social post. Corroboration still 1 (all social rumors).
+3,45,reuters,"Reuters Exclusive: Horizon Bancorp in emergency talks with federal regulators to explore asset sales after $4B deposit outflow in 48 hours",News corroboration arrives. Corroboration count reaches 2. Credibility jumps > 0.85.
+4,65,bloomberg,"BREAKING: FDIC prepares to place Horizon Bancorp into receivership; Fed opens emergency liquidity facility for regional lenders",Institutional confirmation. Impact score reaches 8.9. Regime flips from Calm to Crisis. Stress test auto-triggers. Contagion spreads to JPM and BAC.
+5,90,wsj,"Wall Street Journal: Credit spreads on regional lenders widen by 180bps as banking index plunges 7.5%",Direct market shock confirmed. Contagion propagates to bank loans and CDS. Rebalancer cuts financial sector weights to minimum 1%.
+6,110,financial_times,"Fed and Treasury issue joint statement assuring all insured depositors will be made whole by Monday morning",Policy response. Sentiment stabilizes. Tactical rebalancer begins gradual reallocation as uncertainty confidence interval narrows.

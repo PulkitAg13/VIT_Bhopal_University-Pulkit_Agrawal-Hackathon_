@@ -1,0 +1,197 @@
+{
+  "event_type": "Credit Event",
+  "target_entity": "JPM",
+  "initial_portfolio_value": 1820000000.0,
+  "stressed_portfolio_value": 1797468630.0,
+  "total_pnl": -22531370.0,
+  "percentage_loss": -1.238,
+  "direct_loss": 1865300.0,
+  "contagion_loss": 28347700.0,
+  "direct_vs_contagion_ratio": 0.066,
+  "asset_class_breakdown": [
+    {
+      "asset_class": "Corporate Bond",
+      "market_value": 295000000.0,
+      "stressed_value": 290714800.0,
+      "pnl": -4285200.0
+    },
+    {
+      "asset_class": "Corporate Loan",
+      "market_value": 410000000.0,
+      "stressed_value": 401059700.0,
+      "pnl": -8940300.0
+    },
+    {
+      "asset_class": "Credit Default Swap",
+      "market_value": 190000000.0,
+      "stressed_value": 194445000.0,
+      "pnl": 4445000.0
+    },
+    {
+      "asset_class": "Equity",
+      "market_value": 375000000.0,
+      "stressed_value": 364162500.0,
+      "pnl": -10837499.999999998
+    },
+    {
+      "asset_class": "FX Forward",
+      "market_value": 125000000.0,
+      "stressed_value": 121250000.0,
+      "pnl": -3750000.0
+    },
+    {
+      "asset_class": "Government Bond",
+      "market_value": 185000000.0,
+      "stressed_value": 187476630.0,
+      "pnl": 2476630.0
+    },
+    {
+      "asset_class": "Interest Rate Swap",
+      "market_value": 240000000.0,
+      "stressed_value": 238360000.0,
+      "pnl": -1640000.0
+    }
+  ],
+  "sector_breakdown": [
+    {
+      "sector": "Consumer",
+      "market_value": 83000000.0,
+      "stressed_value": 81151700.0,
+      "pnl": -1848300.0
+    },
+    {
+      "sector": "Energy",
+      "market_value": 150000000.0,
+      "stressed_value": 146619400.0,
+      "pnl": -3380600.0
+    },
+    {
+      "sector": "Financials",
+      "market_value": 755000000.0,
+      "stressed_value": 749652300.0,
+      "pnl": -5347700.0
+    },
+    {
+      "sector": "Healthcare",
+      "market_value": 155000000.0,
+      "stressed_value": 151626500.0,
+      "pnl": -3373500.0
+    },
+    {
+      "sector": "Industrials",
+      "market_value": 25000000.0,
+      "stressed_value": 24535000.0,
+      "pnl": -465000.00000000006
+    },
+    {
+      "sector": "Sovereign",
+      "market_value": 185000000.0,
+      "stressed_value": 187476630.0,
+      "pnl": 2476630.0
+    },
+    {
+      "sector": "Technology",
+      "market_value": 435000000.0,
+      "stressed_value": 424963900.0,
+      "pnl": -10036100.0
+    },
+    {
+      "sector": "Utilities",
+      "market_value": 32000000.0,
+      "stressed_value": 31443200.0,
+      "pnl": -556800.0
+    }
+  ],
+  "top_10_worst_positions": [
+    {
+      "position_id": "EX_009",
+      "asset_class": "FX Forward",
+      "counterparty": "USD/JPY Forward 3M",
+      "market_value": 50000000.0,
+      "pnl": -1500000.0,
+      "ticker": "UUP"
+    },
+    {
+      "position_id": "EX_005",
+      "asset_class": "Interest Rate Swap",
+      "counterparty": "IRS USD 10Y Payer",
+      "market_value": 100000000.0,
+      "pnl": -1500000.0,
+      "ticker": "SPY"
+    },
+    {
+      "position_id": "EX_008",
+      "asset_class": "FX Forward",
+      "counterparty": "USD/EUR Forward 6M",
+      "market_value": 45000000.0,
+      "pnl": -1350000.0,
+      "ticker": "UUP"
+    },
+    {
+      "position_id": "EX_016",
+      "asset_class": "Corporate Loan",
+      "counterparty": "Semiconductor Foundry Capex",
+      "market_value": 50000000.0,
+      "pnl": -1004000.0,
+      "ticker": "NVDA"
+    },
+    {
+      "position_id": "EX_010",
+      "asset_class": "FX Forward",
+      "counterparty": "USD/GBP Forward 1Y",
+      "market_value": 30000000.0,
+      "pnl": -900000.0,
+      "ticker": "UUP"
+    },
+    {
+      "position_id": "EX_007",
+      "asset_class": "Interest Rate Swap",
+      "counterparty": "IRS EUR 10Y Payer",
+      "market_value": 60000000.0,
+      "pnl": -900000.0,
+      "ticker": "SPY"
+    },
+    {
+      "position_id": "EQ_JPM_008",
+      "asset_class": "Equity",
+      "counterparty": "JPM Inc",
+      "market_value": 25000000.0,
+      "pnl": -862499.9999999999,
+      "ticker": "JPM"
+    },
+    {
+      "position_id": "EX_015",
+      "asset_class": "Corporate Loan",
+      "counterparty": "Midstream Energy Pipeline",
+      "market_value": 40000000.0,
+      "pnl": -843200.0000000001,
+      "ticker": "XOM"
+    },
+    {
+      "position_id": "EX_020",
+      "asset_class": "Corporate Loan",
+      "counterparty": "Global Pharma Syndicate",
+      "market_value": 45000000.0,
+      "pnl": -836100.0000000001,
+      "ticker": "PFE"
+    },
+    {
+      "position_id": "EQ_WMT_015",
+      "asset_class": "Equity",
+      "counterparty": "WMT Inc",
+      "market_value": 25000000.0,
+      "pnl": -712499.9999999999,
+      "ticker": "WMT"
+    }
+  ],
+  "cet1_impact": {
+    "initial_cet1_pct": 21.94,
+    "stressed_cet1_pct": 17.78,
+    "cet1_delta_bps": 416.9,
+    "initial_tier1_capital": 180000000.0,
+    "stressed_tier1_capital": 157468630.0,
+    "initial_rwa": 820250000.0,
+    "stressed_rwa": 885870000.0,
+    "disclaimer": "Simplified illustrative CET1 ratio calculation, not regulatory-grade."
+  }
+}

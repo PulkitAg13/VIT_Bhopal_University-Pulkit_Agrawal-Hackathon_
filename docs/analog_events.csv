@@ -1,0 +1,15 @@
+event_id,date,event_type,description,primary_affected_assets,notes
+EV01,2022-02-24,Geopolitical,Russia invades Ukraine sparking commodity spike and global sanctions,XLE,Commodities surge while European and global equities drop
+EV02,2023-03-10,Credit Event,Silicon Valley Bank (SVB) collapse triggers US regional banking liquidity panic,JPM,Massive selloff in regional bank equities and flight to treasuries
+EV03,2022-06-15,Macroeconomic,Federal Reserve hikes rates by 75bps in aggressive inflation fighting move,TLT,Broad bond selloff and dollar surge
+EV04,2020-03-09,Energy/Commodity,Saudi-Russia oil price war crash with crude plunging over 25% in a day,XLE,Historic single-day drop in oil prices and energy equities
+EV05,2020-03-16,Macroeconomic,COVID-19 pandemic global lockdown market crash and circuit breakers,SPY,Extreme equity drawdowns and VIX surge above 80
+EV06,2023-10-07,Geopolitical,Middle East geopolitical escalation in Israel-Gaza corridor,GLD,Flight to safe-havens gold and US Treasuries
+EV07,2022-09-23,Macroeconomic,UK mini-budget gilt crisis causes emergency Bank of England intervention,TLT,Sovereign debt volatility and pension LDI liquidations
+EV08,2023-03-19,Merger/Acquisition,Emergency government-brokered takeover of Credit Suisse by UBS,BAC,Global banking M&A rescue and AT1 bond write-downs
+EV09,2024-08-05,Macroeconomic,Japanese Yen carry trade sudden unwind sparks global flash selloff,SPY,Nikkei 12% drop and severe cross-asset deleveraging
+EV10,2018-03-22,Geopolitical,US announces Section 301 tariffs on Chinese imports initiating trade war,AAPL,Technology supply chain and hardware export anxieties
+EV11,2023-05-01,Credit Event,First Republic Bank seized by FDIC and sold to JPMorgan,JPM,Resolution of mid-sized US bank stress and credit tightening
+EV12,2021-03-26,Credit Event,Archegos Capital Management margin default causes multi-billion bank losses,GS,Counterparty credit failure impacting prime brokerages
+EV13,2023-11-20,Regulatory/Legal,Binance agrees to $4.3B plea deal with US DOJ and Treasury,GS,Major regulatory enforcement in non-bank financial infrastructure
+EV14,2022-11-11,Credit Event,FTX cryptocurrency exchange files for Chapter 11 bankruptcy after run,GS,Contagion and credit freeze across alternative assets
