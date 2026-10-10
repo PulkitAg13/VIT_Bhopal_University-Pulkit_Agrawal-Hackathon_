@@ -67,7 +67,13 @@ export default function StressTestingPage() {
   return (
     <>
       <div className="page-header">
-        <h1>Stress Testing</h1>
+        <div>
+          <h1>Stress Testing</h1>
+          <div className="page-header-sub">Simulated portfolio stress testing under predefined macroeconomic and financial shock assumptions</div>
+        </div>
+        <span className="tag" style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }}>
+          Simulated Stress Results
+        </span>
       </div>
 
       {/* Run stress test */}
