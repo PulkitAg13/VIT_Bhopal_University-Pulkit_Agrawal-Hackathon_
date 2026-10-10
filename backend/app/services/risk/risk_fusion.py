@@ -141,7 +141,45 @@ class MarketContextService:
     """Fetch real market data via yfinance. Cached to avoid excessive API calls."""
 
     _cache: Dict[str, Dict[str, Any]] = {}
-    _cache_ttl = timedelta(minutes=15)
+    _cache_ttl: timedelta = timedelta(minutes=15)
+    _failure_cooldowns: Dict[str, datetime] = {}
+    _cooldown_ttl: timedelta = timedelta(seconds=60)
+    _provider_cooldown_until: Optional[datetime] = None
+    _bypass_in_tests: bool = True
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        """Clear memory cache and cooldown state (primarily for tests)."""
+        cls._cache.clear()
+        cls._failure_cooldowns.clear()
+        cls._provider_cooldown_until = None
+
+    @classmethod
+    def _is_rate_limit_error(cls, exc: Exception) -> bool:
+        """Check if an exception indicates a rate-limit / 429 response."""
+        name = type(exc).__name__.lower()
+        msg = str(exc).lower()
+        return (
+            "ratelimit" in name
+            or "rate limited" in msg
+            or "too many requests" in msg
+            or "429" in msg
+        )
+
+    @classmethod
+    def _record_failure(cls, ticker: str, exc: Exception) -> None:
+        """Record a failure and activate cooldown."""
+        now_utc = datetime.now(timezone.utc)
+        cls._failure_cooldowns[ticker] = now_utc + cls._cooldown_ttl
+        logger.warning("yfinance fetch failed for %s: %s", ticker, exc)
+
+        if cls._is_rate_limit_error(exc):
+            cls._provider_cooldown_until = now_utc + cls._cooldown_ttl
+            logger.info(
+                "yfinance rate-limit detected for %s; provider cooldown active for %ds",
+                ticker,
+                int(cls._cooldown_ttl.total_seconds()),
+            )
 
     @classmethod
     def get_market_context(cls, entities: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -155,7 +193,7 @@ class MarketContextService:
         if not tickers:
             tickers = ["SPY"]
 
-        if os.getenv("TESTING") == "1":
+        if os.getenv("TESTING") == "1" and cls._bypass_in_tests:
             return {
                 "market_context_available": False,
                 "market_volatility": 0.0,
@@ -171,17 +209,40 @@ class MarketContextService:
             for ticker in tickers[:3]:
                 cache_key = ticker
                 now_utc = datetime.now(timezone.utc)
+
+                # 1. Check success cache
                 if cache_key in cls._cache:
                     cached = cls._cache[cache_key]
                     if now_utc - cached["fetched_at"] < cls._cache_ttl:
                         volatilities.append(cached.get("volatility", 0.0))
                         price_changes.append(cached.get("price_change", 0.0))
                         continue
+                    else:
+                        cls._cache.pop(cache_key, None)
 
+                # 2. Check provider-wide rate-limit cooldown
+                if cls._provider_cooldown_until:
+                    if now_utc < cls._provider_cooldown_until:
+                        logger.debug("Skipping yfinance fetch for %s — provider cooldown active", ticker)
+                        continue
+                    else:
+                        cls._provider_cooldown_until = None
+
+                # 3. Check ticker-specific failure cooldown
+                if ticker in cls._failure_cooldowns:
+                    cooldown_until = cls._failure_cooldowns[ticker]
+                    if now_utc < cooldown_until:
+                        logger.debug("Skipping yfinance fetch for %s — ticker cooldown active", ticker)
+                        continue
+                    else:
+                        cls._failure_cooldowns.pop(ticker, None)
+
+                # 4. Attempt fetch with short timeout to fail fast
                 try:
                     stock = yf.Ticker(ticker)
-                    hist = stock.history(period="1mo")
+                    hist = stock.history(period="1mo", timeout=5)
                     if hist.empty or len(hist) < 5:
+                        cls._failure_cooldowns[ticker] = now_utc + cls._cooldown_ttl
                         continue
 
                     returns = hist["Close"].pct_change().dropna()
@@ -196,8 +257,9 @@ class MarketContextService:
                         "price_change": price_change,
                         "fetched_at": now_utc,
                     }
+                    cls._failure_cooldowns.pop(ticker, None)
                 except Exception as exc:
-                    logger.warning("yfinance fetch failed for %s: %s", ticker, exc)
+                    cls._record_failure(ticker, exc)
                     continue
 
             if volatilities:
