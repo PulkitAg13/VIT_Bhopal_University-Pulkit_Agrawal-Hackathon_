@@ -1,7 +1,42 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Radio, Search } from 'lucide-react';
+import { AlertTriangle, Info, Radio, Search } from 'lucide-react';
 import * as api from '../api/client';
+
+function formatIngestMessage(source: string, ticker: string, newCount: number, duplicateCount: number): string {
+  if (source === 'rss') {
+    if (newCount > 0 && duplicateCount === 0) {
+      const articleWord = newCount === 1 ? 'article' : 'articles';
+      return `${newCount} new ${articleWord} analyzed for ${ticker}.`;
+    }
+    if (newCount === 0 && duplicateCount > 0) {
+      const dupWord = duplicateCount === 1 ? 'article was' : 'articles were';
+      return `No new articles found for ${ticker}. ${duplicateCount} ${dupWord} already processed.`;
+    }
+    if (newCount > 0 && duplicateCount > 0) {
+      const newWord = newCount === 1 ? 'article' : 'articles';
+      const dupWord = duplicateCount === 1 ? 'article was' : 'articles were';
+      return `${newCount} new ${newWord} analyzed. ${duplicateCount} ${dupWord} already processed.`;
+    }
+    return `No articles found for ${ticker}.`;
+  }
+
+  // Non-RSS sources (dataset, demo, etc.)
+  if (newCount > 0 && duplicateCount === 0) {
+    const itemWord = newCount === 1 ? 'item' : 'items';
+    return `${newCount} new ${itemWord} analyzed.`;
+  }
+  if (newCount === 0 && duplicateCount > 0) {
+    const itemWord = duplicateCount === 1 ? 'item was' : 'items were';
+    return `No new items found. ${duplicateCount} ${itemWord} already processed.`;
+  }
+  if (newCount > 0 && duplicateCount > 0) {
+    const itemWord = newCount === 1 ? 'item' : 'items';
+    const dupWord = duplicateCount === 1 ? 'item was' : 'items were';
+    return `${newCount} new ${itemWord} analyzed. ${duplicateCount} ${dupWord} already processed.`;
+  }
+  return 'No items found.';
+}
 
 export default function LiveFeedPage() {
   const navigate = useNavigate();
@@ -16,6 +51,7 @@ export default function LiveFeedPage() {
   const [ingesting, setIngesting] = useState(false);
   const [ingestSource, setIngestSource] = useState('rss');
   const [ingestTicker, setIngestTicker] = useState('AAPL');
+  const [ingestStatus, setIngestStatus] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
 
   const normalizeEvent = (evt: any) => ({
     ...evt,
@@ -80,6 +116,7 @@ export default function LiveFeedPage() {
 
   const handleIngest = async () => {
     setIngesting(true);
+    setIngestStatus(null);
     try {
       const result = await api.ingestData(ingestSource, ingestTicker, 5);
       if (result.signals && result.signals.length > 0) {
@@ -91,8 +128,26 @@ export default function LiveFeedPage() {
         });
       }
       await loadFeed(false);
-    } catch (err) {
+
+      const duplicateCount = typeof result.already_processed === 'number'
+        ? result.already_processed
+        : (result.signals || []).filter((s: any) => s.already_processed).length;
+
+      const newCount = typeof result.new_count === 'number'
+        ? result.new_count
+        : (result.signals || []).filter((s: any) => !s.already_processed).length;
+
+      const message = formatIngestMessage(ingestSource, ingestTicker, newCount, duplicateCount);
+      setIngestStatus({
+        type: newCount > 0 ? 'success' : 'info',
+        message,
+      });
+    } catch (err: any) {
       console.error('Ingestion failed', err);
+      setIngestStatus({
+        type: 'error',
+        message: err?.message || 'Ingestion failed. Please check backend connection.',
+      });
     } finally {
       setIngesting(false);
     }
@@ -138,12 +193,12 @@ export default function LiveFeedPage() {
         </div>
         <div className="card-body">
           <div className="filter-bar">
-            <select className="select" value={ingestSource} onChange={e => setIngestSource(e.target.value)}>
+            <select className="select" value={ingestSource} onChange={e => { setIngestSource(e.target.value); setIngestStatus(null); }}>
               <option value="rss">Yahoo Finance RSS (Live News)</option>
               <option value="dataset">Dataset Replay (Twitter Financial News)</option>
               <option value="demo">Synthetic Demo Scenario</option>
             </select>
-            <select className="select" value={ingestTicker} onChange={e => setIngestTicker(e.target.value)}>
+            <select className="select" value={ingestTicker} onChange={e => { setIngestTicker(e.target.value); setIngestStatus(null); }}>
               {['AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','JPM','BAC','XOM'].map(t =>
                 <option key={t} value={t}>{t}</option>
               )}
@@ -152,6 +207,46 @@ export default function LiveFeedPage() {
               {ingesting ? 'Processing Pipeline...' : 'Fetch & Analyze'}
             </button>
           </div>
+          {ingestStatus && (
+            <div
+              id="ingest-status-message"
+              style={{
+                marginTop: '0.75rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '6px',
+                fontSize: '0.8125rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background:
+                  ingestStatus.type === 'error'
+                    ? 'var(--risk-critical-bg)'
+                    : ingestStatus.type === 'success'
+                    ? 'var(--risk-low-bg)'
+                    : 'var(--accent-blue-light)',
+                color:
+                  ingestStatus.type === 'error'
+                    ? 'var(--risk-critical)'
+                    : ingestStatus.type === 'success'
+                    ? 'var(--risk-low)'
+                    : 'var(--accent-blue)',
+                border: `1px solid ${
+                  ingestStatus.type === 'error'
+                    ? 'rgba(220, 38, 38, 0.2)'
+                    : ingestStatus.type === 'success'
+                    ? 'rgba(22, 163, 74, 0.2)'
+                    : 'rgba(37, 99, 235, 0.2)'
+                }`,
+              }}
+            >
+              {ingestStatus.type === 'error' ? (
+                <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+              ) : (
+                <Info size={15} style={{ flexShrink: 0 }} />
+              )}
+              <span>{ingestStatus.message}</span>
+            </div>
+          )}
         </div>
       </div>
 
