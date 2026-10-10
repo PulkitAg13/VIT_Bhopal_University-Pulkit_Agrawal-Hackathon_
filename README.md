@@ -97,7 +97,7 @@ flowchart TD
 └──────────────────────┬──────────────────────────┘
                        │ HTTP / WebSocket
 ┌──────────────────────┴──────────────────────────┐
-│                  Backend (FastAPI)               │
+│                  Backend (FastAPI)              │
 │  /analyze · /ingest · /events · /entities       │
 │  /portfolio · /stress-test · /metrics · /demo   │
 ├─────────────────────────────────────────────────┤
