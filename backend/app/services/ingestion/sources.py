@@ -103,16 +103,32 @@ class RSSNewsSource:
 class DatasetReplaySource:
     """Replay items from downloaded HuggingFace datasets."""
 
+    _cursors: Dict[str, int] = {}
+    _cached_texts: Dict[str, List[str]] = {}
+
     def __init__(self, dataset_name: str = "twitter_sentiment") -> None:
         self.dataset_name = dataset_name
         self.name = f"Dataset Replay ({dataset_name})"
         self.source_type = "dataset"
 
-    def fetch(self, max_items: int = 10, shuffle: bool = True) -> List[IngestedItem]:
-        """Load texts from downloaded dataset files."""
-        items: List[IngestedItem] = []
+    @classmethod
+    def reset_cursor(cls, dataset_name: Optional[str] = None) -> None:
+        """Reset replay cursor for a specific dataset or all datasets."""
+        if dataset_name:
+            cls._cursors[dataset_name] = 0
+        else:
+            cls._cursors.clear()
 
-        # Try loading from parquet/csv/json in data/raw/{dataset_name}/
+    @classmethod
+    def get_cursor(cls, dataset_name: str) -> int:
+        """Get current replay cursor position for a dataset."""
+        return cls._cursors.get(dataset_name, 0)
+
+    def _load_texts(self) -> List[str]:
+        """Load and cache texts from dataset files."""
+        if self.dataset_name in self._cached_texts and self._cached_texts[self.dataset_name]:
+            return self._cached_texts[self.dataset_name]
+
         dataset_dir = _DATA_DIR / "raw" / self.dataset_name
         if not dataset_dir.exists():
             raise FileNotFoundError(
@@ -120,7 +136,7 @@ class DatasetReplaySource:
                 f"Run 'python scripts/download_datasets.py' to download real HuggingFace datasets."
             )
 
-        texts = []
+        texts: List[str] = []
 
         # Try CSV
         for csv_file in dataset_dir.glob("*.csv"):
@@ -171,19 +187,52 @@ class DatasetReplaySource:
                 f"Run 'python scripts/download_datasets.py' to download real datasets."
             )
 
-        if shuffle:
-            random.shuffle(texts)
+        self._cached_texts[self.dataset_name] = texts
+        return texts
 
-        for text in texts[:max_items]:
+    def fetch(
+        self,
+        max_items: int = 10,
+        shuffle: bool = False,
+        offset: Optional[int] = None,
+    ) -> List[IngestedItem]:
+        """Load texts sequentially from downloaded dataset files."""
+        texts = self._load_texts()
+        total_texts = len(texts)
+        if total_texts == 0:
+            return []
+
+        items: List[IngestedItem] = []
+
+        if shuffle:
+            # Deterministic pseudo-random selection without continuous duplicates
+            indices = list(range(total_texts))
+            random.shuffle(indices)
+            selected_indices = indices[:max_items]
+        else:
+            # Sequential deterministic replay
+            if offset is not None:
+                start_idx = offset % total_texts
+            else:
+                start_idx = self._cursors.get(self.dataset_name, 0) % total_texts
+
+            selected_indices = [(start_idx + i) % total_texts for i in range(min(max_items, total_texts))]
+            # Advance replay cursor
+            self._cursors[self.dataset_name] = (start_idx + len(selected_indices)) % total_texts
+
+        for idx in selected_indices:
+            text = texts[idx]
             items.append(IngestedItem(
                 text=text,
                 source_name=self.name,
                 source_type="dataset",
-                source_url=f"https://huggingface.co/datasets/{self.dataset_name}",
+                source_url=f"https://huggingface.co/datasets/{self.dataset_name}#record-{idx}",
             ))
 
-        logger.info("Dataset replay: %d items from %s (total available: %d)",
-                    len(items), self.dataset_name, len(texts))
+        logger.info(
+            "Dataset replay: %d items from %s (cursor was %d, total available: %d)",
+            len(items), self.dataset_name, self._cursors.get(self.dataset_name, 0), total_texts,
+        )
         return items
 
 
