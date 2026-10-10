@@ -17,22 +17,62 @@ export default function LiveFeedPage() {
   const [ingestSource, setIngestSource] = useState('rss');
   const [ingestTicker, setIngestTicker] = useState('AAPL');
 
-  const loadFeed = () => {
-    setLoading(true);
-    setError('');
-    api.fetchEvents({ page_size: 50 })
-      .then(r => setEvents(r.items || []))
-      .catch((err) => setError(err.message || 'Failed to load live feed'))
-      .finally(() => setLoading(false));
+  const normalizeEvent = (evt: any) => ({
+    ...evt,
+    signal_id: evt.signal_id || evt.id || evt.event_id,
+    event: evt.event || (evt.event_class ? { class: evt.event_class, confidence: evt.event_confidence ?? 1.0 } : undefined),
+    impact: evt.impact || (evt.risk_level ? { risk_level: evt.risk_level, score: evt.impact_score ?? 0 } : undefined),
+    sentiment: evt.sentiment || (evt.sentiment_label ? { label: evt.sentiment_label, score: evt.sentiment_score ?? 0 } : undefined),
+  });
+
+  const loadFeed = async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+      setError('');
+    }
+    try {
+      const r = await api.fetchEvents({ page_size: 50 });
+      if (r.items) {
+        setEvents(prev => {
+          const serverItems = r.items.map(normalizeEvent);
+          const serverIds = new Set(serverItems.map((e: any) => e.signal_id).filter(Boolean));
+          // Preserve any newly received events (e.g. from WebSocket) that aren't yet in server batch
+          const newerWsEvents = prev.filter(e => {
+            const id = e.signal_id || e.id;
+            return id && !serverIds.has(id);
+          });
+          return [...newerWsEvents, ...serverItems].slice(0, 100);
+        });
+      }
+    } catch (err: any) {
+      if (showLoading) {
+        setError(err.message || 'Failed to load live feed');
+      } else {
+        console.error('Failed to refresh feed', err);
+      }
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
   };
 
   useEffect(() => {
-    loadFeed();
+    loadFeed(true);
   }, []);
 
   useEffect(() => {
     const ws = api.createWebSocket(
-      (data) => setEvents(prev => [data, ...prev].slice(0, 100)),
+      (data) => {
+        setEvents(prev => {
+          const norm = normalizeEvent(data);
+          const id = norm.signal_id;
+          if (id && prev.some(e => (e.signal_id || e.id) === id)) {
+            return prev;
+          }
+          return [norm, ...prev].slice(0, 100);
+        });
+      },
       setWsStatus,
     );
     return () => ws.close();
@@ -42,9 +82,15 @@ export default function LiveFeedPage() {
     setIngesting(true);
     try {
       const result = await api.ingestData(ingestSource, ingestTicker, 5);
-      if (result.signals) {
-        setEvents(prev => [...result.signals, ...prev].slice(0, 100));
+      if (result.signals && result.signals.length > 0) {
+        setEvents(prev => {
+          const newSignals = result.signals.map(normalizeEvent);
+          const existingIds = new Set(prev.map((e: any) => e.signal_id || e.id).filter(Boolean));
+          const uniqueNew = newSignals.filter((s: any) => !existingIds.has(s.signal_id || s.id));
+          return [...uniqueNew, ...prev].slice(0, 100);
+        });
       }
+      await loadFeed(false);
     } catch (err) {
       console.error('Ingestion failed', err);
     } finally {
@@ -54,9 +100,12 @@ export default function LiveFeedPage() {
 
   const filtered = events.filter(evt => {
     if (search && !(evt.text || '').toLowerCase().includes(search.toLowerCase())) return false;
-    if (classFilter && evt.event?.class !== classFilter) return false;
-    if (riskFilter && evt.impact?.risk_level !== riskFilter) return false;
-    if (sentimentFilter && evt.sentiment?.label !== sentimentFilter) return false;
+    const evtClass = evt.event?.class || evt.event_class;
+    if (classFilter && evtClass !== classFilter) return false;
+    const evtRisk = evt.impact?.risk_level || evt.risk_level;
+    if (riskFilter && evtRisk !== riskFilter) return false;
+    const evtSent = evt.sentiment?.label || evt.sentiment_label;
+    if (sentimentFilter && evtSent !== sentimentFilter) return false;
     return true;
   });
 
@@ -137,7 +186,7 @@ export default function LiveFeedPage() {
       {filtered.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {filtered.map((evt, i) => (
-            <div key={evt.signal_id || i} className="event-card" onClick={() => evt.signal_id && navigate(`/events/${evt.signal_id}`)}>
+            <div key={evt.signal_id || evt.id || i} className="event-card" onClick={() => (evt.signal_id || evt.id) && navigate(`/events/${evt.signal_id || evt.id}`)}>
               <div className="event-card-header">
                 <div>
                   <div className="event-card-source">{evt.source?.name ?? 'Unknown'}</div>
