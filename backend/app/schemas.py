@@ -200,6 +200,8 @@ class IngestResponse(BaseModel):
     ingested: int
     source: str
     signals: List[Dict[str, Any]] = []
+    new_count: int = 0
+    already_processed: int = 0
 
 
 class DemoRunResponse(BaseModel):
