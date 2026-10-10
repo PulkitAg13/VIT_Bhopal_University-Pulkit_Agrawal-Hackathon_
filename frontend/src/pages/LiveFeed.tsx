@@ -81,13 +81,18 @@ export default function LiveFeedPage() {
 
       {/* Ingestion Control */}
       <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-header"><span className="card-title">Fetch & Analyze</span></div>
+        <div className="card-header">
+          <span className="card-title">Fetch & Ingest Data</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+            Supports Live RSS, Historical Datasets & Synthetic Scenarios
+          </span>
+        </div>
         <div className="card-body">
           <div className="filter-bar">
             <select className="select" value={ingestSource} onChange={e => setIngestSource(e.target.value)}>
-              <option value="rss">Yahoo Finance RSS</option>
-              <option value="dataset">Dataset Replay</option>
-              <option value="demo">Demo Scenario</option>
+              <option value="rss">Yahoo Finance RSS (Live News)</option>
+              <option value="dataset">Dataset Replay (Twitter Financial News)</option>
+              <option value="demo">Synthetic Demo Scenario</option>
             </select>
             <select className="select" value={ingestTicker} onChange={e => setIngestTicker(e.target.value)}>
               {['AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','JPM','BAC','XOM'].map(t =>
@@ -95,7 +100,7 @@ export default function LiveFeedPage() {
               )}
             </select>
             <button className="btn btn-primary" onClick={handleIngest} disabled={ingesting} id="ingest-btn">
-              {ingesting ? 'Fetching...' : 'Fetch & Analyze'}
+              {ingesting ? 'Processing Pipeline...' : 'Fetch & Analyze'}
             </button>
           </div>
         </div>
