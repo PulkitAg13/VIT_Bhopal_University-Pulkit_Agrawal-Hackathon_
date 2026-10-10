@@ -27,6 +27,8 @@ def ingest(payload: IngestRequest, db: Session = Depends(get_db)) -> IngestRespo
                 ingested=0,
                 source=source.name,
                 signals=[],
+                new_count=0,
+                already_processed=0,
             )
 
         signals = []
@@ -42,10 +44,15 @@ def ingest(payload: IngestRequest, db: Session = Depends(get_db)) -> IngestRespo
             )
             signals.append(result)
 
+        already_processed = sum(1 for s in signals if s.get("already_processed"))
+        new_count = len(signals) - already_processed
+
         return IngestResponse(
             ingested=len(signals),
             source=source.name,
             signals=signals,
+            new_count=new_count,
+            already_processed=already_processed,
         )
     except ModelUnavailableError:
         raise
