@@ -141,4 +141,121 @@ describe('LiveFeedPage Synchronization', () => {
       expect(screen.getByText('Stale query event')).toBeDefined();
     });
   });
+
+  it('displays clear status message when new articles are analyzed for Yahoo RSS', async () => {
+    vi.mocked(api.fetchEvents).mockResolvedValue({
+      items: [],
+      count: 0,
+      page: 1,
+      page_size: 50,
+    });
+
+    vi.mocked(api.ingestData).mockResolvedValueOnce({
+      ingested: 5,
+      source: 'rss',
+      signals: Array.from({ length: 5 }, (_, i) => ({ signal_id: `sig-new-${i}`, text: `Article ${i}` })),
+      new_count: 5,
+      already_processed: 0,
+    });
+
+    render(
+      <MemoryRouter>
+        <LiveFeedPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Fetch & Analyze/i })).toBeDefined();
+    });
+
+    const tickerSelect = screen.getAllByRole('combobox')[1];
+    fireEvent.change(tickerSelect, { target: { value: 'AMZN' } });
+
+    const ingestBtn = screen.getByRole('button', { name: /Fetch & Analyze/i });
+    fireEvent.click(ingestBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('5 new articles analyzed for AMZN.')).toBeDefined();
+    });
+  });
+
+  it('displays clear status message when all articles are duplicates for Yahoo RSS', async () => {
+    vi.mocked(api.fetchEvents).mockResolvedValue({
+      items: [],
+      count: 0,
+      page: 1,
+      page_size: 50,
+    });
+
+    vi.mocked(api.ingestData).mockResolvedValueOnce({
+      ingested: 5,
+      source: 'rss',
+      signals: Array.from({ length: 5 }, (_, i) => ({ signal_id: `sig-dup-${i}`, text: `Article ${i}`, already_processed: true })),
+      new_count: 0,
+      already_processed: 5,
+    });
+
+    render(
+      <MemoryRouter>
+        <LiveFeedPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Fetch & Analyze/i })).toBeDefined();
+    });
+
+    const tickerSelect = screen.getAllByRole('combobox')[1];
+    fireEvent.change(tickerSelect, { target: { value: 'AMZN' } });
+
+    const ingestBtn = screen.getByRole('button', { name: /Fetch & Analyze/i });
+    fireEvent.click(ingestBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('No new articles found for AMZN. 5 articles were already processed.')).toBeDefined();
+    });
+  });
+
+  it('displays clear status message when there is a mixture of new and duplicate articles', async () => {
+    vi.mocked(api.fetchEvents).mockResolvedValue({
+      items: [],
+      count: 0,
+      page: 1,
+      page_size: 50,
+    });
+
+    vi.mocked(api.ingestData).mockResolvedValueOnce({
+      ingested: 5,
+      source: 'rss',
+      signals: [
+        { signal_id: 'sig-1', text: 'New 1' },
+        { signal_id: 'sig-2', text: 'New 2' },
+        { signal_id: 'sig-3', text: 'Dup 1', already_processed: true },
+        { signal_id: 'sig-4', text: 'Dup 2', already_processed: true },
+        { signal_id: 'sig-5', text: 'Dup 3', already_processed: true },
+      ],
+      new_count: 2,
+      already_processed: 3,
+    });
+
+    render(
+      <MemoryRouter>
+        <LiveFeedPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Fetch & Analyze/i })).toBeDefined();
+    });
+
+    const tickerSelect = screen.getAllByRole('combobox')[1];
+    fireEvent.change(tickerSelect, { target: { value: 'AMZN' } });
+
+    const ingestBtn = screen.getByRole('button', { name: /Fetch & Analyze/i });
+    fireEvent.click(ingestBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('2 new articles analyzed. 3 articles were already processed.')).toBeDefined();
+    });
+  });
 });
