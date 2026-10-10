@@ -509,17 +509,17 @@ class ModelManager:
 
     def check_mandatory_models(self) -> None:
         """Verify mandatory NLP models are available; raises ModelUnavailableError if not."""
-        if self._finbert_pipeline is None:
+        if self._finbert_pipeline is None and not str(self._finbert_status).startswith(ERROR):
             self.load_finbert()
         if self._finbert_status != READY:
             raise ModelUnavailableError("ProsusAI/finbert", self._finbert_status)
 
-        if self._embedding_model is None:
+        if self._embedding_model is None and not str(self._embedding_status).startswith(ERROR):
             self.load_embeddings()
         if self._embedding_status != READY:
             raise ModelUnavailableError("sentence-transformers/all-MiniLM-L6-v2", self._embedding_status)
 
-        if self._zeroshot_pipeline is None:
+        if self._zeroshot_pipeline is None and not str(self._classifier_status).startswith(ERROR):
             self.load_classifier()
         if self._classifier_status != READY:
             raise ModelUnavailableError(
@@ -527,7 +527,7 @@ class ModelManager:
                 self._classifier_status,
             )
 
-        if self._ner_pipeline is None:
+        if self._ner_pipeline is None and not str(self._ner_status).startswith(ERROR):
             self.load_ner()
         if self._ner_status != READY:
             raise ModelUnavailableError("dslim/bert-base-NER", self._ner_status)
