@@ -22,7 +22,7 @@
 5. [Key Results & Domain Impact](#5-key-results--domain-impact)
 6. [API Reference](#6-api-reference)
 7. [Project Structure](#7-project-structure)
-8. [Limitations & Next Steps](#8-limitations--next-steps)
+8. [Future Scope & Roadmap](#8-future-scope--roadmap)
 9. [License](#9-license)
 
 ---
@@ -395,23 +395,23 @@ Base URL: `http://localhost:8000` (interactive docs at `/docs`)
 
 ---
 
-## 8. Limitations & Next Steps
+## 8. Future Scope & Roadmap
 
-### Current limitations
-- Entity resolution relies on the canonical table in `config/entities.yaml`, so issuers outside it may not map to portfolio positions.
-- Zero-shot classification on CPU is slower than a fine-tuned lightweight classifier.
-- Stress scenarios are illustrative and not calibrated to regulatory frameworks.
-- The portfolio is synthetic and small (18 positions), so results show the mechanism rather than real-world magnitudes.
-- Public social and news text is a proxy for the data a real bank would use.
-- Event impact scores have not been back-tested against realised market or credit outcomes.
+### Prototype scope
+This version demonstrates the complete signal-to-portfolio workflow end to end: from live and public financial text, through NLP risk intelligence and explainable scoring, to portfolio exposure and stress analysis.
 
-### Next steps
-- Fine-tune a finance-specific NER model and extend entity resolution with a knowledge-graph-based linker.
-- Fine-tune a smaller event classifier from the zero-shot outputs to cut latency.
-- Link events to specific portfolio positions and counterparties for event-driven exposure alerts.
-- Back-test impact scores against historical events and calibrate the weights.
-- Add more sources (regulatory filings, earnings transcripts) and multilingual support.
-- Add authentication, role-based access and alert routing (email / Slack) for production use.
+- **Reproducible by design:** public news, public historical datasets and a synthetic $100M portfolio keep the project fully reproducible and free of proprietary data.
+- **Configurable assumptions:** entities, event taxonomy and stress scenarios live in YAML files in [`/config`](config/), so assumptions can be adjusted without code changes.
+- **Decision-support focus:** impact scores and stress results are analytical outputs that help prioritize risk signals, not market forecasts.
+
+### Future development roadmap
+
+| Area | Planned enhancements |
+|---|---|
+| **Intelligence** | Finance-tuned NER with a knowledge-graph entity linker; distilled lightweight event classifier for lower latency; multilingual support |
+| **Portfolio analytics** | Position- and counterparty-level exposure mapping with event-driven alerts; back-testing and calibration of impact-score weights against historical events |
+| **Data sources** | Regulatory filings and earnings-call transcripts |
+| **Platform** | Authentication and role-based access; alert routing via email / Slack |
 
 ---
 
