@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   postgres:
@@ -8,11 +8,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-finrisk}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finriskpass}
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finrisk} -d ${POSTGRES_DB:-finrisk}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-finrisk} -d ${POSTGRES_DB:-finrisk}"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,7 +24,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - '6379:6379'
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -32,27 +36,41 @@ services:
   backend:
     build:
       context: ./backend
+
     environment:
       DATABASE_URL: postgresql+psycopg2://finrisk:finriskpass@postgres:5432/finrisk
       REDIS_URL: redis://redis:6379/0
+
       APP_ENV: demo
+
       BACKEND_CORS_ORIGINS: "http://localhost:3000,http://frontend:80"
+
       HF_HOME: /app/.cache/huggingface
       TRANSFORMERS_CACHE: /app/.cache/huggingface
       MODEL_CACHE_DIR: /app/.cache/models
+
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+
     ports:
-      - '8000:8000'
+      - "8000:8000"
+
     volumes:
       - ./data:/app/data
       - ./config:/app/config
       - model_cache:/app/.cache
+
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health').read()"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health').read()"
+        ]
       interval: 30s
       timeout: 15s
       retries: 5
@@ -63,11 +81,13 @@ services:
       context: ./frontend
       args:
         VITE_API_BASE_URL: ""
+
     depends_on:
       backend:
         condition: service_healthy
+
     ports:
-      - '3000:80'
+      - "3000:80"
 
 volumes:
   postgres_data:
