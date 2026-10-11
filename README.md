@@ -17,21 +17,20 @@
 
 1. [Project Overview / Problem Statement & Approach](#1-project-overview--problem-statement--approach)
 2. [Architecture & Tech Stack](#2-architecture--tech-stack)
-3. [Dataset Used](#3-dataset-used)
+3. [Dataset Used & Data Transparency](#3-dataset-used--data-transparency-disclosures)
 4. [Quickstart & Installation](#4-quickstart--installation)
 5. [Key Results & Domain Impact](#5-key-results--domain-impact)
 6. [API Reference](#6-api-reference)
 7. [Project Structure](#7-project-structure)
 8. [Limitations & Next Steps](#8-limitations--next-steps)
-9. [AI Usage Disclosure](#9-ai-usage-disclosure)
-10. [License](#10-license)
+9. [License](#9-license)
 
 ---
 
 ## 1. Project Overview / Problem Statement & Approach
 
 ### The problem
-Wholesale banking risk teams are flooded with unstructured information: news wires, social media, filings and market commentary. Most of it is noise, much of it is duplicated across sources, and the few items that really matter (a credit downgrade, a supply-chain shock, a regulatory action) can be buried or noticed too late. Analysts also need to understand *why* an event is flagged as risky and *what it would do to the bank's portfolio* before they can act on it. A black-box alert is not enough.
+Wholesale banking risk teams are flooded with unstructured information: financial news, social media, company announcements and market commentary. Most of it is noise, much of it is duplicated across sources, and the few items that really matter (a credit downgrade, a supply-chain shock, a regulatory action) can be buried or noticed too late. Analysts also need to understand *why* an event is flagged as risky and *what it would do to the bank's portfolio* before they can act on it. A black-box alert is not enough.
 
 ### Our approach
 **FinRisk Intelligence** turns raw financial text into portfolio-aware, explainable risk signals in near real time:
@@ -55,9 +54,10 @@ Wholesale banking risk teams are flooded with unstructured information: news wir
 
 ### System design and data flow
 
-[Architecture Diagram]
+![FinRisk Intelligence architecture diagram](docs/architecture.png)
 
-> 📌 *High-resolution diagram:*
+<details>
+<summary>Diagram source (Mermaid)</summary>
 
 ```mermaid
 flowchart TD
@@ -68,7 +68,7 @@ flowchart TD
     D[FastAPI Ingestion Layer<br/>/ingest · /analyze · /demo] --> E
 
     subgraph NLP[NLP Pipeline]
-        E[Entity Extraction<br/>dictionary + regex + resolution] --> F[FinBERT Sentiment]
+        E[Entity Extraction<br/>BERT-NER + canonical resolution] --> F[FinBERT Sentiment]
         F --> G[Zero-Shot Event Classification<br/>BART-MNLI · 15 categories]
         G --> H[Sentence Embeddings<br/>MiniLM · dedup, novelty, corroboration]
     end
@@ -79,12 +79,14 @@ flowchart TD
     K --> L[WebSocket /ws/risk-events]
 
     M[Synthetic Portfolio<br/>18 positions · 6 asset classes] --> N[Stress Testing Engine<br/>5 scenarios]
-    I --> N
+    I -->|auto-trigger, impact >= 7.0| N
     N --> J
 
     J --> O[React Dashboard]
     L --> O
 ```
+
+</details>
 
 ### Layered view
 
@@ -115,9 +117,9 @@ flowchart TD
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | React, TypeScript, Vite, Recharts, nginx (production serving) |
+| **Frontend** | React, TypeScript, Vite, React Router, TanStack React Query, Recharts, Tailwind CSS, nginx (production serving) |
 | **Backend** | Python, FastAPI, Pydantic, SQLAlchemy |
-| **AI / ML** | HuggingFace Transformers, sentence-transformers, FinBERT, BART-MNLI |
+| **AI / ML** | HuggingFace Transformers, sentence-transformers, FinBERT, BART-MNLI, BERT-NER, MiniLM |
 | **Data / Messaging** | PostgreSQL, Redis (pub/sub), WebSockets |
 | **Ingestion** | feedparser (RSS), HuggingFace `datasets` |
 | **DevOps** | Docker, Docker Compose, Makefile |
@@ -169,6 +171,7 @@ Dataset details are documented in [`data/README.md`](data/README.md).
 ### Replay & Simulation Methodology
 - **Sequential Dataset Replay:** Replay deterministically advances through distinct historical records without repeating identical items (`Record 1 → Record 2 → Record 3...`). Exact duplicate texts are deterministically detected via content hashing/matching.
 - **Automatic Stress Trigger:** High-impact qualifying events (impact score >= 7.0 in systemic categories such as Geopolitical, Credit Event, Macroeconomic, Liquidity) automatically trigger a duration-sensitive portfolio stress simulation and persist the result with `is_auto_triggered = True`.
+- **Twitter Financial News** is a public historical dataset replayed through the same pipeline. It is not a live Twitter/X feed.
 - **The portfolio** is a synthetic **$100M, 18-position** wholesale banking book spanning **6 asset classes**. It is illustrative and not based on any real institution.
 - **Stress scenarios** are hand-defined with assumptions documented in `config/stress_scenarios.yaml`. Shock magnitudes are illustrative simulation models, not regulatory predictions.
 - **Entity resolution** resolves extracted entities to canonical issuers and portfolio positions (`config/entities.yaml`).
@@ -179,7 +182,7 @@ Dataset details are documented in [`data/README.md`](data/README.md).
 
 ## 4. Quickstart & Installation
 
-**Runtime:** Python 3.11, Node 20, Docker 24+ with Docker Compose v2 on **[OS tested, e.g. Windows 11 / Ubuntu 22.04]** *(edit to match your machine)*
+**Runtime:** Python 3.11, Node 20, Docker 24+ with Docker Compose v2 on **Windows** (Docker Desktop)
 
 **Hardware:** CPU is sufficient (GPU is used automatically if CUDA is available). About **4 GB RAM** and **~3 GB disk** are needed for model downloads on the first run.
 
@@ -262,18 +265,35 @@ Then open http://localhost:3000 and explore the **Dashboard**, **Live Feed**, **
 - **Real-time delivery:** Redis pub/sub → WebSocket → live dashboard.
 - **Persistence and analytics:** full PostgreSQL schema (sources, documents, entities, signals, clusters, portfolio, simulations) and a 16-endpoint REST API plus a WebSocket stream.
 
+### Demo run snapshot
+
+> Scores are model-generated. The portfolio is synthetic and the stress result is a simulation, not a forecast of real losses.
+
+| Metric | Value |
+|---|---|
+| Overall risk (dashboard, demo state) | ~5.3 / 10 (Moderate) |
+| Synthetic portfolio | $100M · 18 positions · 6 asset classes |
+| Simulated macro rate shock | about -6.95% (about $6.9M) |
+
 ### Screenshots
 
-<!-- Add screenshots to /docs/screenshots and uncomment the lines below -->
-<!--
-| Dashboard | Event Explainability |
-|---|---|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Explainability](docs/screenshots/explainability.png) |
+**Risk Command Center (Dashboard):** overall risk, risk trajectory, portfolio exposure and recent events.
+![Dashboard](docs/screenshots/dashboard.jpg)
 
-| Portfolio Exposure | Stress Testing |
-|---|---|
-| ![Portfolio](docs/screenshots/portfolio.png) | ![Stress Test](docs/screenshots/stress.png) |
--->
+**Live Feed:** ingest from Yahoo Finance RSS or replay a public dataset; each event shows impact, event class, sentiment, confidence and entities.
+![Live Feed](docs/screenshots/live-feed.jpg)
+
+**Entity intelligence:** per-entity risk and sentiment timelines with event history.
+![Entity detail](docs/screenshots/entity-detail.jpg)
+
+**Portfolio (synthetic, $100M):** asset allocation, sector exposure and all 18 positions.
+![Portfolio](docs/screenshots/portfolio.jpg)
+
+**Stress Testing (simulated):** scenario selection with assumptions, before/after value, and asset-class impact.
+![Stress Testing](docs/screenshots/stress-testing.jpg)
+
+**Analytics:** event, risk, sentiment and source distributions.
+![Analytics](docs/screenshots/analytics.jpg)
 
 ### Efficiency vs. a naive approach
 
@@ -378,7 +398,7 @@ Base URL: `http://localhost:8000` (interactive docs at `/docs`)
 ## 8. Limitations & Next Steps
 
 ### Current limitations
-- Entity extraction is dictionary + regex based and misses entities not in `entities.yaml`.
+- Entity resolution relies on the canonical table in `config/entities.yaml`, so issuers outside it may not map to portfolio positions.
 - Zero-shot classification on CPU is slower than a fine-tuned lightweight classifier.
 - Stress scenarios are illustrative and not calibrated to regulatory frameworks.
 - The portfolio is synthetic and small (18 positions), so results show the mechanism rather than real-world magnitudes.
@@ -386,7 +406,7 @@ Base URL: `http://localhost:8000` (interactive docs at `/docs`)
 - Event impact scores have not been back-tested against realised market or credit outcomes.
 
 ### Next steps
-- Replace dictionary entity extraction with a fine-tuned financial NER model plus a knowledge-graph-based resolver.
+- Fine-tune a finance-specific NER model and extend entity resolution with a knowledge-graph-based linker.
 - Fine-tune a smaller event classifier from the zero-shot outputs to cut latency.
 - Link events to specific portfolio positions and counterparties for event-driven exposure alerts.
 - Back-test impact scores against historical events and calibrate the weights.
@@ -395,13 +415,7 @@ Base URL: `http://localhost:8000` (interactive docs at `/docs`)
 
 ---
 
-## 9. AI Usage Disclosure
-
-In line with the hackathon's integrity guidelines: AI assistance was used while building and documenting this project, and I take full responsibility for the final submission. The NLP models listed above are open-source pre-trained models used under their respective licenses.
-
----
-
-## 10. License
+## 9. License
 
 Released under the [MIT License](LICENSE).
 
